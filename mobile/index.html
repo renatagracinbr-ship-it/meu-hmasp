@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0cb7f2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Meu HMASP</title>
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/icon-192.png">
+    <link rel="apple-touch-icon" href="/icons/icon-192.png">
+    <link rel="stylesheet" href="/src/styles/mobile.css">
+</head>
+
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header class="mobile-header">
+            <div class="header-logo">
+                <img src="/assets/logo-hmasp.png" alt="HMASP" class="logo-img">
+            </div>
+            <div class="header-title">
+                <h1>Meu HMASP</h1>
+            </div>
+            <div class="header-menu">
+                <button id="menu-btn" class="icon-btn" aria-label="Menu">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Conteudo Principal -->
+        <main class="mobile-content">
+            <!-- Tela Home -->
+            <section id="home-screen" class="screen active">
+                <div class="welcome-card">
+                    <div class="welcome-avatar">
+                        <span id="user-initials">?</span>
+                    </div>
+                    <h2>Bem-vindo(a)!</h2>
+                    <p id="user-name">Carregando...</p>
+                </div>
+
+                <div class="quick-actions">
+                    <h3>Acesso Rapido</h3>
+                    <div class="action-grid">
+                        <button class="action-card" data-tab="consultas">
+                            <div class="action-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32">
+                                    <path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
+                                </svg>
+                            </div>
+                            <span>Minhas Consultas</span>
+                        </button>
+                        <button class="action-card" data-tab="chat">
+                            <div class="action-icon">
+                                <svg viewBox="0 0 24 24" width="32" height="32">
+                                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                                </svg>
+                            </div>
+                            <span>Chat</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dependentes -->
+                <div class="dependents-section">
+                    <div class="section-header">
+                        <h3>Pacientes Cadastrados</h3>
+                        <button id="add-dependent-btn" class="btn-add">
+                            <svg viewBox="0 0 24 24" width="20" height="20">
+                                <path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+                            </svg>
+                            Adicionar
+                        </button>
+                    </div>
+                    <div id="dependents-list" class="dependents-list">
+                        <!-- Lista de dependentes sera carregada aqui -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Chat -->
+            <section id="chat-screen" class="screen">
+                <div class="chat-container">
+                    <div class="chat-messages" id="chat-messages">
+                        <div class="chat-welcome">
+                            <div class="chat-welcome-icon">
+                                <svg viewBox="0 0 24 24" width="48" height="48">
+                                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                                </svg>
+                            </div>
+                            <h3>Central de Regulacao</h3>
+                            <p>Envie uma mensagem para falar com a equipe do HMASP</p>
+                        </div>
+                    </div>
+                    <div class="chat-input-area">
+                        <input type="text" id="chat-input" placeholder="Digite sua mensagem..." autocomplete="off">
+                        <button id="send-message-btn" class="send-btn" disabled>
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tela Minhas Consultas -->
+            <section id="consultas-screen" class="screen">
+                <div class="consultas-header">
+                    <h2>Minhas Consultas</h2>
+                    <select id="patient-selector" class="patient-select">
+                        <!-- Opcoes serao carregadas dinamicamente -->
+                    </select>
+                </div>
+                <div id="consultas-list" class="consultas-list">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Carregando consultas...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Navegacao Inferior -->
+        <nav class="bottom-nav">
+            <button class="nav-item active" data-tab="home">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                </svg>
+                <span>Home</span>
+            </button>
+            <button class="nav-item" data-tab="chat">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+                </svg>
+                <span>Chat</span>
+                <span class="badge" id="chat-badge" style="display: none;">0</span>
+            </button>
+            <button class="nav-item" data-tab="consultas">
+                <svg viewBox="0 0 24 24" width="24" height="24">
+                    <path fill="currentColor" d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
+                </svg>
+                <span>Consultas</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- Modal Adicionar Dependente -->
+    <div id="add-dependent-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Adicionar Paciente</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p>Digite o numero do prontuario para adicionar outro paciente (ex: filho, esposa)</p>
+                <div class="form-group">
+                    <label for="dependent-prontuario">Prontuario</label>
+                    <input type="text" id="dependent-prontuario" placeholder="Ex: 123456" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label for="dependent-relationship">Parentesco</label>
+                    <select id="dependent-relationship">
+                        <option value="filho">Filho(a)</option>
+                        <option value="conjuge">Conjuge</option>
+                        <option value="pai">Pai/Mae</option>
+                        <option value="outro">Outro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel">Cancelar</button>
+                <button class="btn-confirm">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

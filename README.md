@@ -1,164 +1,177 @@
-# HMASP Chat - Marcação de Consultas
+# Meu HMASP - Aplicativo do Paciente
 
-Sistema de mensageria WhatsApp para marcação e gestão de consultas do Hospital Municipal Arthur Saboya Pessoa (HMASP).
+Sistema de comunicacao e gestao de consultas para pacientes do Hospital Militar de Area de Sao Paulo (HMASP).
 
-## 🚀 Início Rápido
+## Arquitetura do Sistema
 
-### Requisitos
-- Node.js 20 LTS
-- Ubuntu/Linux 20.04+ (ou WSL2 no Windows)
-- Acesso à rede interna do HMASP (para banco AGHUse)
+```
+                         PACIENTES
+                    (App Mobile - Firebase)
+         +----------+----------+------------------+
+         |   Home   |   Chat   | Minhas Consultas |
+         +----------+----------+------------------+
+                            |
+                            | API (HTTPS)
+                            v
++-------------------------------------------------------------+
+|                    BACKEND (VM HMASP)                        |
+|  +---------------+  +---------------+  +---------------+     |
+|  | Chat Service  |  | Consultas API |  | Auth Service  |     |
+|  +---------------+  +---------------+  +---------------+     |
+|                            |                                 |
+|              +-------------+-------------+                   |
+|              v                           v                   |
+|     +---------------+          +---------------+             |
+|     |  SQLite Local |          |  AGHUse (PG)  |             |
+|     |  (Mensagens)  |          |  (Consultas)  |             |
+|     +---------------+          +---------------+             |
++-------------------------------------------------------------+
+                            |
+                            v
++-------------------------------------------------------------+
+|                    OPERADOR (Desktop Web)                    |
+|  +------+-------------+-------------+-----------+-----------+|
+|  | Chat | Confirmacao | Desmarcacao | Consultas | Notificao ||
+|  |      |  Presenca   |             | Paciente  | Faltantes ||
+|  +------+-------------+-------------+-----------+-----------+|
++-------------------------------------------------------------+
+```
 
-### ⚡ Instalação Automática (Linux/Ubuntu)
+## Estrutura do Projeto
 
+```
+Meu HMASP/
++-- mobile/                    # App do Paciente (Firebase Hosting)
+|   +-- index.html             # Pagina principal mobile
+|   +-- src/
+|   |   +-- main.js            # Logica do app mobile
+|   |   +-- styles/
+|   |       +-- mobile.css     # Estilos mobile
+|   +-- public/
+|   |   +-- manifest.json      # PWA manifest
+|   +-- firebase.json          # Config Firebase Hosting
+|   +-- package.json           # Dependencias mobile
+|
++-- desktop/                   # Interface do Operador (Desktop)
+|   +-- (a ser configurado - usa index.html atual)
+|
++-- server/                    # Backend Node.js
+|   +-- aghuse-server.js       # Integracao com banco AGHUse
+|   +-- database/              # Schemas e servicos de banco
+|   +-- middleware/            # Middlewares Express
+|   +-- services/              # Servicos de negocio
+|
++-- src/                       # Codigo fonte compartilhado
+|   +-- services/              # Servicos do frontend
+|   +-- components/            # Componentes UI
+|   +-- styles/                # Estilos CSS
+|
++-- index.html                 # Interface do operador (atual)
++-- server.js                  # Servidor principal
++-- package.json               # Dependencias do projeto
+```
+
+## Funcionalidades
+
+### App Mobile (Paciente)
+- **Home**: Tela de boas-vindas, cadastro de dependentes
+- **Chat**: Comunicacao direta com a Central de Regulacao
+- **Minhas Consultas**: Visualizacao e confirmacao de consultas
+
+### Interface Desktop (Operador)
+- **Chat**: Conversar com pacientes conectados
+- **Confirmacao de Presenca**: Confirmar presenca em consultas
+- **Desmarcacao de Consultas**: Gerenciar cancelamentos
+- **Consultas do Paciente**: Buscar consultas por paciente
+- **Notificacao aos Faltantes**: Notificar pacientes que faltaram
+- **Configuracoes**: Configurar mensagens e sistema
+
+## Tecnologias
+
+### Frontend Mobile
+- HTML5 + CSS3 + JavaScript ES6
+- PWA (Progressive Web App)
+- Firebase Hosting
+
+### Frontend Desktop
+- Vite + JavaScript
+- CSS puro (identidade visual HMASP)
+
+### Backend
+- Node.js + Express
+- SQLite (mensagens e dados locais)
+- PostgreSQL (AGHUse - consultas)
+
+## Configuracao
+
+### 1. Instalar dependencias do projeto principal
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/renatagracinbr-ship-it/HMASP-Chat.git
-cd HMASP-Chat
-
-# 2. Execute instalação automática (instala TUDO)
-bash install-linux.sh
-
-# 3. Configure banco de dados
-nano .env
-
-# 4. Inicie o servidor
-bash start.sh
+npm install
 ```
 
-**O script `install-linux.sh` faz tudo automaticamente:**
-- ✅ Instala Node.js 20 LTS
-- ✅ Instala dependências do Chrome/Puppeteer
-- ✅ Instala dependências do projeto (npm install)
-- ✅ Cria estrutura de pastas
-- ✅ Faz build do frontend
-- ✅ Configura usuário admin padrão
-
-**Após instalação, acesse:**
-- 🏥 **Interface Principal:** http://localhost:3000/
-- 📱 **WhatsApp Admin:** http://localhost:3000/whatsapp-admin.html
-- ⚙️ **Admin (envio auto):** http://localhost:3000/admin.html
-
-*Sem necessidade de login - sistema usa auto-login automático*
-
-### 📚 Documentação Completa
-
-- **[Guia Início Rápido Linux](INICIO-RAPIDO-LINUX.md)** - Resumo essencial
-- **[Guia Completo Deploy Linux](DEPLOY-LINUX.md)** - Instalação detalhada, PM2, troubleshooting
-
-## 📁 Estrutura do Projeto
-
-```
-HMASP-Chat/
-├── server.js                  # Servidor principal Node.js + Express
-├── install-linux.sh           # 🆕 Script de instalação automática Linux
-├── start.sh                   # Script de inicialização do servidor
-├── DEPLOY-LINUX.md            # 🆕 Guia completo de deploy Linux
-├── INICIO-RAPIDO-LINUX.md     # 🆕 Guia rápido Linux
-├── package.json               # Dependências do projeto
-├── vite.config.js             # Configuração do build frontend
-├── .env.example               # Exemplo de variáveis de ambiente
-├── src/                       # Código fonte do frontend
-│   ├── main.js               # Entry point da aplicação
-│   ├── components/           # Componentes da interface
-│   └── utils/                # Utilitários
-├── server/                    # Backend modules
-│   ├── auth.js               # Autenticação local (arquivos JSON)
-│   ├── aghuse-server.js      # Integração com banco AGHUse
-│   └── data/                 # Dados locais (usuários, sessões)
-├── public/                    # Arquivos estáticos
-│   ├── admin.html            # Interface Admin
-│   └── whatsapp-admin.html   # Admin WhatsApp (QR Code)
-├── dist/                      # Frontend compilado (gerado por build)
-└── logs/                      # Logs da aplicação
+### 2. Instalar dependencias do app mobile
+```bash
+cd mobile
+npm install
 ```
 
-## ⚙️ Configuração
-
-### Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
-
+### 3. Configurar variaveis de ambiente
+Crie um arquivo `.env` na raiz:
 ```env
 # PostgreSQL - AGHUse
 DB_HOST=10.12.40.XXX
 DB_PORT=5432
-DB_USER=aghuse
+DB_USER=birm_read
 DB_PASSWORD=sua_senha
-DB_NAME=agh
+DB_NAME=dbaghu
 
 # Porta do servidor
 PORT=3000
 ```
 
-### Configuração do Banco de Dados
+### 4. Executar em desenvolvimento
 
-O sistema se conecta ao banco de dados AGHUse (PostgreSQL) do HMASP. Certifique-se de ter acesso à rede interna e permissões adequadas.
-
-## 🔧 Comandos Úteis
-
+**Backend + Desktop:**
 ```bash
-# Executar tudo (recomendado)
-bash start.sh
-
-# Instalar dependências
-npm install
-
-# Build do frontend
-npm run build
-
-# Executar apenas o servidor
-node server.js
+npm run dev
 ```
 
-## 📦 Tecnologias
+**App Mobile:**
+```bash
+cd mobile
+npm run dev
+```
 
-**Backend:**
-- Node.js + Express.js
-- whatsapp-web.js (integração WhatsApp)
-- PostgreSQL (pg driver)
+## Deploy
 
-**Frontend:**
-- Vue.js 3
-- Vite (build tool)
-- CSS puro
+### Firebase (App Mobile)
+```bash
+cd mobile
+npm run build
+firebase deploy --only hosting
+```
 
-**Infraestrutura:**
-- Ubuntu Server 20.04+ LTS
-- PM2 (gerenciamento de processos - recomendado)
-- Systemd (alternativa ao PM2)
-- Puppeteer (automação WhatsApp Web)
+### VM HMASP (Backend)
+O backend sera implantado na VM do HMASP com acesso ao banco AGHUse.
 
-## 🏥 Integração AGHUse
+## Paleta de Cores
 
-O sistema integra com o banco de dados AGHUse para:
-- ✅ Buscar consultas agendadas
-- ✅ Enviar mensagens de lembrete automáticas
-- ✅ Confirmar presença de pacientes
-- ✅ Gerenciar desmarcações e reagendamentos
+| Cor | Hex | Uso |
+|-----|-----|-----|
+| Azul Principal | #0cb7f2 | Fundo, botoes principais |
+| Bege | #E6E1C9 | Caixas internas, destaques |
+| Branco | #FFFFFF | Textos, backgrounds |
 
-## 📞 WhatsApp
+## Proximos Passos
 
-Utiliza `whatsapp-web.js` para:
-- Envio automatizado de mensagens em fila
-- Autenticação via QR Code
-- Persistência de sessão
-- Monitoramento de status de envio
-
-## 🛡️ Segurança
-
-- Autenticação baseada em sessões
-- Validação de permissões por função (admin/operador)
-- Auto-login seguro para ambiente VM
-- Sanitização de inputs do usuário
-- Logs de auditoria completos
-
-## 📄 Licença
-
-Projeto proprietário do Hospital Municipal Arthur Saboya Pessoa (HMASP).
-Uso interno exclusivo.
+1. [ ] Finalizar sistema de chat proprio (substituir WhatsApp)
+2. [ ] Implementar autenticacao Firebase
+3. [ ] Criar aba "Consultas do Paciente" no operador
+4. [ ] Configurar notificacoes push
+5. [ ] Testes de integracao
 
 ---
 
-**Desenvolvido para HMASP São Paulo**
-**Última atualização**: Dezembro 2025
+**Desenvolvido para HMASP Sao Paulo**
+**Versao**: 1.0.0
+**Ultima atualizacao**: Dezembro 2024
