@@ -57,7 +57,14 @@
                     <path fill="currentColor"
                         d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2zm-2 1H8v-6c0-2.48 1.51-4.5 4-4.5s4 2.02 4 4.5v6z" />
                 </svg>
-                <span class="nav-text">Notificação aos Faltantes</span>
+                <span class="nav-text">Notificacao aos Faltantes</span>
+            </button>
+            <button class="nav-item" data-tab="consultas-paciente">
+                <svg class="nav-icon" viewBox="0 0 24 24" width="18" height="18">
+                    <path fill="currentColor"
+                        d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                </svg>
+                <span class="nav-text">Consultas do Paciente</span>
             </button>
             <button class="nav-item" data-tab="config">
                 <svg class="nav-icon" viewBox="0 0 24 24" width="18" height="18">
@@ -447,7 +454,126 @@
                 </div>
             </div>
 
-            <!-- Aba 5: Configurações -->
+            <!-- Aba 5: Consultas do Paciente -->
+            <div id="consultas-paciente-tab" class="tab-content">
+                <div class="confirmacao-container">
+                    <!-- Header -->
+                    <div class="confirmacao-header">
+                        <h2>Consultas do Paciente</h2>
+
+                        <!-- Status inline -->
+                        <div class="header-status">
+                            <div class="status-item-inline">
+                                <span class="status-label-inline">AGHUse</span>
+                                <span class="status-indicator" id="aghuse-indicator-consultas-paciente">Conectando...</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros de busca -->
+                    <div class="search-filters" style="background: #f8fafc; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
+                        <h3 style="margin: 0 0 16px 0; color: #334155; font-size: 16px;">Buscar Paciente</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 16px; align-items: end;">
+                            <div class="form-group" style="margin: 0;">
+                                <label for="filtro-nome" style="display: block; font-size: 13px; color: #64748b; margin-bottom: 6px;">Nome</label>
+                                <input type="text" id="filtro-nome" placeholder="Digite o nome do paciente"
+                                    style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label for="filtro-cpf" style="display: block; font-size: 13px; color: #64748b; margin-bottom: 6px;">CPF</label>
+                                <input type="text" id="filtro-cpf" placeholder="000.000.000-00" maxlength="14"
+                                    style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <div class="form-group" style="margin: 0;">
+                                <label for="filtro-prontuario" style="display: block; font-size: 13px; color: #64748b; margin-bottom: 6px;">Prontuario</label>
+                                <input type="text" id="filtro-prontuario" placeholder="Ex: 123456" maxlength="10"
+                                    style="width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;">
+                            </div>
+                            <button id="btn-buscar-paciente"
+                                style="background: #0cb7f2; color: white; border: none; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 8px; height: 42px;">
+                                <svg viewBox="0 0 24 24" width="18" height="18">
+                                    <path fill="currentColor"
+                                        d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                                </svg>
+                                Buscar
+                            </button>
+                        </div>
+                        <p style="margin: 12px 0 0 0; font-size: 12px; color: #94a3b8;">Preencha pelo menos um campo para buscar</p>
+                    </div>
+
+                    <!-- Informacoes do paciente encontrado -->
+                    <div id="paciente-info" style="display: none; background: #e0f2fe; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h3 id="paciente-nome" style="margin: 0 0 4px 0; color: #0369a1; font-size: 18px;">Nome do Paciente</h3>
+                                <p style="margin: 0; color: #0c4a6e; font-size: 14px;">
+                                    <span id="paciente-prontuario-label">Prontuario: </span><strong id="paciente-prontuario-valor">-</strong>
+                                    <span style="margin: 0 12px;">|</span>
+                                    <span>CPF: </span><strong id="paciente-cpf-valor">-</strong>
+                                    <span style="margin: 0 12px;">|</span>
+                                    <span>Tel: </span><strong id="paciente-telefone-valor">-</strong>
+                                </p>
+                            </div>
+                            <button id="btn-limpar-busca"
+                                style="background: transparent; border: 1px solid #0369a1; color: #0369a1; padding: 8px 16px; border-radius: 6px; font-size: 13px; cursor: pointer;">
+                                Limpar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Loading -->
+                    <div id="consultas-loading" style="display: none; text-align: center; padding: 40px;">
+                        <div class="spinner" style="width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #0cb7f2; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 16px;"></div>
+                        <p style="color: #64748b;">Buscando consultas...</p>
+                    </div>
+
+                    <!-- Tabela de consultas -->
+                    <div id="consultas-resultado" style="display: none;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                            <h3 style="margin: 0; color: #334155; font-size: 16px;">Consultas Agendadas</h3>
+                            <span id="consultas-count" style="background: #0cb7f2; color: white; padding: 4px 12px; border-radius: 20px; font-size: 13px;">0 consultas</span>
+                        </div>
+                        <div class="table-container" style="background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #f1f5f9;">
+                                        <th style="padding: 14px 16px; text-align: left; font-size: 13px; color: #475569; font-weight: 600;">Data/Hora</th>
+                                        <th style="padding: 14px 16px; text-align: left; font-size: 13px; color: #475569; font-weight: 600;">Especialidade</th>
+                                        <th style="padding: 14px 16px; text-align: left; font-size: 13px; color: #475569; font-weight: 600;">Profissional</th>
+                                        <th style="padding: 14px 16px; text-align: left; font-size: 13px; color: #475569; font-weight: 600;">Local</th>
+                                        <th style="padding: 14px 16px; text-align: center; font-size: 13px; color: #475569; font-weight: 600;">Situacao</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consultas-tbody">
+                                    <!-- Consultas serao inseridas aqui via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Estado vazio -->
+                    <div id="consultas-empty" style="display: none; text-align: center; padding: 60px 40px;">
+                        <svg viewBox="0 0 24 24" width="64" height="64" style="color: #cbd5e1; margin-bottom: 16px;">
+                            <path fill="currentColor"
+                                d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z" />
+                        </svg>
+                        <h3 style="margin: 0 0 8px 0; color: #64748b; font-size: 18px;">Nenhuma consulta encontrada</h3>
+                        <p style="margin: 0; color: #94a3b8; font-size: 14px;">Este paciente nao possui consultas agendadas no momento</p>
+                    </div>
+
+                    <!-- Mensagem inicial -->
+                    <div id="consultas-inicial" style="text-align: center; padding: 60px 40px;">
+                        <svg viewBox="0 0 24 24" width="64" height="64" style="color: #cbd5e1; margin-bottom: 16px;">
+                            <path fill="currentColor"
+                                d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" />
+                        </svg>
+                        <h3 style="margin: 0 0 8px 0; color: #64748b; font-size: 18px;">Busque um paciente</h3>
+                        <p style="margin: 0; color: #94a3b8; font-size: 14px;">Use os filtros acima para encontrar as consultas de um paciente</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aba 6: Configurações -->
             <div id="config-tab" class="tab-content">
                 <div class="config-container">
                     <h2 class="config-title">Configurações do Sistema</h2>

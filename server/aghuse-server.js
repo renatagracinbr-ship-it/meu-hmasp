@@ -382,6 +382,193 @@ async function fetchAppointmentsIn72Hours() {
 }
 
 /**
+ * Busca consultas agendadas de um paciente especifico
+ * Pode buscar por nome, CPF ou prontuario
+ *
+ * @param {Object} filtro - Filtros de busca
+ * @param {string} filtro.nome - Nome do paciente (busca parcial)
+ * @param {string} filtro.cpf - CPF do paciente (busca exata)
+ * @param {string} filtro.prontuario - Prontuario do paciente (busca exata)
+ * @param {boolean} filtro.apenasAgendadas - Se true, retorna apenas consultas futuras marcadas
+ * @returns {Promise<Array>} Lista de consultas do paciente
+ */
+async function fetchPatientAppointments(filtro = {}) {
+    try {
+        const { nome, cpf, prontuario, apenasAgendadas = true } = filtro;
+
+        // Validacao: pelo menos um filtro deve ser informado
+        if (!nome && !cpf && !prontuario) {
+            throw new Error('Informe pelo menos um filtro: nome, CPF ou prontuario');
+        }
+
+        const result = await executeWithRetry(async (client) => {
+            // Monta as condicoes WHERE dinamicamente
+            const conditions = [];
+            const params = [];
+            let paramIndex = 1;
+
+            if (prontuario) {
+                conditions.push(`p.prontuario = $${paramIndex}`);
+                params.push(prontuario);
+                paramIndex++;
+            }
+
+            if (cpf) {
+                // Remove caracteres nao numericos do CPF
+                const cpfLimpo = cpf.replace(/\D/g, '');
+                conditions.push(`p.cpf::text = $${paramIndex}`);
+                params.push(cpfLimpo);
+                paramIndex++;
+            }
+
+            if (nome) {
+                // Busca parcial por nome (case insensitive)
+                conditions.push(`UPPER(p.nome) LIKE UPPER($${paramIndex})`);
+                params.push(`%${nome}%`);
+                paramIndex++;
+            }
+
+            // Condicao para consultas futuras marcadas
+            let situacaoCondition = '';
+            if (apenasAgendadas) {
+                situacaoCondition = `AND c.stc_situacao = 'M' AND c.dt_consulta >= NOW()`;
+            }
+
+            const query = `
+                SELECT
+                    c.numero as consulta_numero,
+                    c.dt_consulta as data_hora_consulta,
+                    COALESCE(c.dthr_marcacao, c.alterado_em) as data_hora_marcacao,
+                    c.pac_codigo,
+                    COALESCE(p.prontuario::text, '') as prontuario,
+                    p.nome as nome_paciente,
+                    COALESCE(p.cpf::text, '') as cpf_paciente,
+                    CASE
+                        WHEN p.fone_celular IS NOT NULL AND p.ddd_fone_celular IS NOT NULL
+                        THEN CONCAT(p.ddd_fone_celular::text, p.fone_celular::text)
+                        WHEN p.fone_celular IS NOT NULL
+                        THEN p.fone_celular::text
+                        ELSE NULL
+                    END as telefone_celular,
+                    CASE
+                        WHEN p.fone_residencial IS NOT NULL AND p.ddd_fone_residencial IS NOT NULL
+                        THEN CONCAT(p.ddd_fone_residencial::text, p.fone_residencial::text)
+                        WHEN p.fone_residencial IS NOT NULL
+                        THEN p.fone_residencial::text
+                        ELSE NULL
+                    END as telefone_fixo,
+                    c.stc_situacao as situacao_codigo,
+                    sit.descricao as situacao_descricao,
+                    g.esp_seq,
+                    e.nome_especialidade as especialidade,
+                    COALESCE(pf_atendido.nome, pf_pre.nome, pf_grade.nome) as profissional_nome,
+                    u.descricao as local_descricao
+                FROM agh.aac_consultas c
+                INNER JOIN agh.aip_pacientes p ON p.codigo = c.pac_codigo
+                LEFT JOIN agh.aac_grade_agendamen_consultas g ON g.seq = c.grd_seq
+                LEFT JOIN agh.agh_especialidades e ON e.seq = g.esp_seq
+                LEFT JOIN agh.aac_situacao_consultas sit ON sit.situacao = c.stc_situacao
+                LEFT JOIN agh.rap_servidores s_grade ON s_grade.matricula = g.ser_matricula AND s_grade.vin_codigo = g.ser_vin_codigo
+                LEFT JOIN agh.rap_pessoas_fisicas pf_grade ON pf_grade.codigo = s_grade.pes_codigo
+                LEFT JOIN agh.rap_servidores s_pre ON s_pre.matricula = g.pre_ser_matricula AND s_pre.vin_codigo = g.pre_ser_vin_codigo
+                LEFT JOIN agh.rap_pessoas_fisicas pf_pre ON pf_pre.codigo = s_pre.pes_codigo
+                LEFT JOIN agh.rap_servidores s_atendido ON s_atendido.matricula = c.ser_matricula_atendido AND s_atendido.vin_codigo = c.ser_vin_codigo_atendido
+                LEFT JOIN agh.rap_pessoas_fisicas pf_atendido ON pf_atendido.codigo = s_atendido.pes_codigo
+                LEFT JOIN agh.agh_unidades_funcionais u ON u.seq = g.usl_unf_seq
+                WHERE ${conditions.join(' AND ')}
+                    ${situacaoCondition}
+                ORDER BY c.dt_consulta ASC
+                LIMIT 100;
+            `;
+
+            return await client.query(query, params);
+        });
+
+        console.log(`[AGHUse] ✅ ${result.rows.length} consultas encontradas para o paciente`);
+        return result.rows;
+
+    } catch (error) {
+        console.error('[AGHUse] ❌ Erro ao buscar consultas do paciente:', error.message);
+        throw error;
+    }
+}
+
+/**
+ * Busca dados basicos de um paciente pelo prontuario, CPF ou nome
+ * Util para validar se o paciente existe antes de buscar consultas
+ */
+async function searchPatient(filtro = {}) {
+    try {
+        const { nome, cpf, prontuario } = filtro;
+
+        if (!nome && !cpf && !prontuario) {
+            throw new Error('Informe pelo menos um filtro: nome, CPF ou prontuario');
+        }
+
+        const result = await executeWithRetry(async (client) => {
+            const conditions = [];
+            const params = [];
+            let paramIndex = 1;
+
+            if (prontuario) {
+                conditions.push(`p.prontuario = $${paramIndex}`);
+                params.push(prontuario);
+                paramIndex++;
+            }
+
+            if (cpf) {
+                const cpfLimpo = cpf.replace(/\D/g, '');
+                conditions.push(`p.cpf::text = $${paramIndex}`);
+                params.push(cpfLimpo);
+                paramIndex++;
+            }
+
+            if (nome) {
+                conditions.push(`UPPER(p.nome) LIKE UPPER($${paramIndex})`);
+                params.push(`%${nome}%`);
+                paramIndex++;
+            }
+
+            const query = `
+                SELECT
+                    p.codigo,
+                    p.prontuario,
+                    p.nome,
+                    p.cpf,
+                    p.dt_nascimento,
+                    CASE
+                        WHEN p.fone_celular IS NOT NULL AND p.ddd_fone_celular IS NOT NULL
+                        THEN CONCAT(p.ddd_fone_celular::text, p.fone_celular::text)
+                        WHEN p.fone_celular IS NOT NULL
+                        THEN p.fone_celular::text
+                        ELSE NULL
+                    END as telefone_celular,
+                    CASE
+                        WHEN p.fone_residencial IS NOT NULL AND p.ddd_fone_residencial IS NOT NULL
+                        THEN CONCAT(p.ddd_fone_residencial::text, p.fone_residencial::text)
+                        WHEN p.fone_residencial IS NOT NULL
+                        THEN p.fone_residencial::text
+                        ELSE NULL
+                    END as telefone_fixo
+                FROM agh.aip_pacientes p
+                WHERE ${conditions.join(' AND ')}
+                ORDER BY p.nome
+                LIMIT 50;
+            `;
+
+            return await client.query(query, params);
+        });
+
+        console.log(`[AGHUse] ✅ ${result.rows.length} paciente(s) encontrado(s)`);
+        return result.rows;
+
+    } catch (error) {
+        console.error('[AGHUse] ❌ Erro ao buscar paciente:', error.message);
+        throw error;
+    }
+}
+
+/**
  * Fecha o pool de conexões
  */
 async function closeConnection() {
@@ -397,5 +584,7 @@ module.exports = {
     fetchRecentlyScheduledAppointments,
     fetchRecentlyCancelledAppointments,
     fetchAppointmentsIn72Hours,
+    fetchPatientAppointments,
+    searchPatient,
     closeConnection
 };

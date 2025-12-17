@@ -2851,6 +2851,87 @@ app.get('/api/aghuse/appointments-72h', async (req, res) => {
 });
 
 // ============================================================================
+// CONSULTAS DO PACIENTE - Busca por nome, CPF ou prontuario
+// ============================================================================
+
+// Buscar pacientes (para autocomplete/selecao)
+app.get('/api/aghuse/search-patient', async (req, res) => {
+    try {
+        const { nome, cpf, prontuario } = req.query;
+
+        if (!nome && !cpf && !prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'Informe pelo menos um filtro: nome, cpf ou prontuario'
+            });
+        }
+
+        console.log('[AGHUse] Buscando paciente:', { nome, cpf, prontuario });
+
+        const pacientes = await aghuse.searchPatient({ nome, cpf, prontuario });
+
+        res.json({
+            success: true,
+            count: pacientes.length,
+            pacientes
+        });
+    } catch (error) {
+        console.error('[AGHUse] Erro ao buscar paciente:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Buscar consultas de um paciente especifico
+app.get('/api/aghuse/patient-appointments', async (req, res) => {
+    try {
+        const { nome, cpf, prontuario, apenasAgendadas } = req.query;
+
+        if (!nome && !cpf && !prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'Informe pelo menos um filtro: nome, cpf ou prontuario'
+            });
+        }
+
+        console.log('[AGHUse] Buscando consultas do paciente:', { nome, cpf, prontuario });
+
+        const appointments = await aghuse.fetchPatientAppointments({
+            nome,
+            cpf,
+            prontuario,
+            apenasAgendadas: apenasAgendadas !== 'false'
+        });
+
+        // Transforma dados para formato padrao do frontend
+        const consultasFormatadas = appointments.map(row => ({
+            consultaNumero: row.consulta_numero,
+            pacCodigo: row.pac_codigo,
+            prontuario: row.prontuario,
+            nomePaciente: row.nome_paciente,
+            cpf: row.cpf_paciente,
+            telefoneCelular: row.telefone_celular,
+            telefoneFixo: row.telefone_fixo,
+            dataConsulta: row.data_hora_consulta,
+            dataMarcacao: row.data_hora_marcacao,
+            situacao: row.situacao_codigo,
+            situacaoDescricao: row.situacao_descricao,
+            especialidade: row.especialidade || 'Nao informada',
+            profissional: row.profissional_nome || 'Nao informado',
+            local: row.local_descricao || 'Nao informado'
+        }));
+
+        res.json({
+            success: true,
+            count: consultasFormatadas.length,
+            consultas: consultasFormatadas
+        });
+    } catch (error) {
+        console.error('[AGHUse] Erro ao buscar consultas do paciente:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================================================
 // DATABASE - Otimização de Performance
 // ============================================================================
 

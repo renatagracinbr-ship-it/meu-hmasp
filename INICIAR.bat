@@ -2,7 +2,7 @@
 cls
 
 echo ========================================
-echo   HMASP Chat - Iniciando Servidor
+echo   Meu HMASP - Iniciando Servidor
 echo ========================================
 echo.
 
@@ -19,19 +19,36 @@ echo OK - Node.js instalado
 node --version
 echo.
 
+echo Verificando dependencias...
+if not exist "node_modules" (
+    echo Instalando dependencias...
+    npm install
+    echo.
+)
+
 echo Iniciando servidor...
 echo.
-start "HMASP Chat - Servidor" cmd /k "node server.js"
+start "Meu HMASP - Servidor" cmd /k "node server.js"
+
+echo Aguardando servidor iniciar...
+timeout /t 3 /nobreak >nul
+
+echo Abrindo navegador...
+start http://localhost:3000
 
 echo.
 echo ========================================
 echo   SERVIDOR INICIADO!
 echo ========================================
 echo.
-echo O servidor abrira 3 abas automaticamente:
-echo   1 - Interface Principal (Usuarios - Visualizacao)
-echo   2 - Interface Admin (VM - Envio Automatico)
-echo   3 - WhatsApp Admin (Status/QR Code)
+echo Interface do Operador: http://localhost:3000
+echo.
+echo Abas disponiveis:
+echo   - Chat (conversar com pacientes)
+echo   - Confirmacao de Presenca
+echo   - Desmarcacao de Consultas
+echo   - Notificacao aos Faltantes
+echo   - Configuracoes
 echo.
 echo Para parar: Feche a janela do servidor
 echo.

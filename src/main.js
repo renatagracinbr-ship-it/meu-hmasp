@@ -26,6 +26,7 @@ import {
 import * as ConfirmacaoPresenca from './components/confirmacaoPresenca.js';
 import * as DesmarcacaoConsultas from './components/desmarcacaoConsultas.js';
 import * as ConfiguracaoMensagens from './components/configuracaoMensagens.js';
+import * as ConsultasPaciente from './components/consultasPaciente.js';
 import * as MonitoramentoGlobal from './services/monitoramentoGlobal.service.js';
 
 // URL base da API
@@ -220,6 +221,11 @@ function switchTab(tabName) {
     // Se trocar para desmarcação, inicializa componente
     if (tabName === 'desmarcacao') {
         DesmarcacaoConsultas.init();
+    }
+
+    // Se trocar para consultas do paciente, inicializa componente
+    if (tabName === 'consultas-paciente') {
+        ConsultasPaciente.init();
     }
 
     // Se trocar para configurações, ativa aba usuários por padrão
