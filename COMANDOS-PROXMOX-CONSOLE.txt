@@ -1,0 +1,85 @@
+╔══════════════════════════════════════════════════════════════════╗
+║    COMANDOS PARA EXECUTAR NO CONSOLE DO PROXMOX                  ║
+╚══════════════════════════════════════════════════════════════════╝
+
+ACESSO: https://10.12.40.211:8006
+Datacenter → proxmox3 → 100 (whatsapp) → Console
+Login: sistema-whats
+Senha: Sistema@whats
+
+════════════════════════════════════════════════════════════════════
+
+PASSO 1 - VERIFICAR O QUE ESTÁ RODANDO
+────────────────────────────────────────────────────────────────────
+
+Cole este comando:
+
+ps aux | grep node | grep -v grep
+
+Copie o resultado e me envie.
+
+════════════════════════════════════════════════════════════════════
+
+PASSO 2 - VER ONDE ESTÁ O PROJETO
+────────────────────────────────────────────────────────────────────
+
+Cole este comando:
+
+ls -la /opt/hmasp/
+
+Copie o resultado e me envie.
+
+════════════════════════════════════════════════════════════════════
+
+PASSO 3 - VERIFICAR VERSÃO DO PROJETO
+────────────────────────────────────────────────────────────────────
+
+Cole estes comandos (um por vez):
+
+cd /opt/hmasp/hmasp-chat-v2
+pwd
+git log -1 --oneline
+ls -lh dist/ | head -5
+
+Copie o resultado e me envie.
+
+════════════════════════════════════════════════════════════════════
+
+PASSO 4 - VER QUAL PORTA O SERVIDOR ESTÁ USANDO
+────────────────────────────────────────────────────────────────────
+
+Cole este comando:
+
+ss -tlnp | grep node
+
+Copie o resultado e me envie.
+
+════════════════════════════════════════════════════════════════════
+
+PASSO 5 - VER O ARQUIVO server.js (LINHA QUE DEFINE A PORTA)
+────────────────────────────────────────────────────────────────────
+
+Cole este comando:
+
+grep -n "const PORT" server.js | head -5
+
+Copie o resultado e me envie.
+
+════════════════════════════════════════════════════════════════════
+
+DEPOIS DESSES COMANDOS, VOC me envie os resultados e eu vou:
+1. Analisar qual versão está rodando
+2. Comparar com o GitHub e versão local
+3. Decidir melhor estratégia
+4. Criar script de sincronização
+
+════════════════════════════════════════════════════════════════════
+
+OU SE PREFERIR - EXECUTE TUDO DE UMA VEZ:
+────────────────────────────────────────────────────────────────────
+
+echo "=== PROCESSOS ===" && ps aux | grep node | grep -v grep && echo "" && echo "=== DIRETORIO ===" && ls -la /opt/hmasp/ && echo "" && echo "=== GIT ===" && cd /opt/hmasp/hmasp-chat-v2 && git log -1 --oneline && echo "" && echo "=== DIST ===" && ls -lh dist/ 2>/dev/null | head -5 && echo "" && echo "=== PORTAS ===" && ss -tlnp | grep node && echo "" && echo "=== PORTA NO CODIGO ===" && grep -n "const PORT" server.js | head -5
+
+Cole todo esse comando de uma vez e me envie o resultado completo.
+
+════════════════════════════════════════════════════════════════════

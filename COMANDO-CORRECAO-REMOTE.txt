@@ -1,0 +1,28 @@
+╔══════════════════════════════════════════════════════════════╗
+║              CORREÇÃO - remote origin already exists          ║
+╚══════════════════════════════════════════════════════════════╝
+
+O erro aconteceu porque já existe uma configuração do Git.
+Vamos remover e adicionar de novo com a URL correta!
+
+════════════════════════════════════════════════════════════════
+
+EXECUTE ESTE COMANDO (copiar e colar TUDO):
+
+════════════════════════════════════════════════════════════════
+
+git remote remove origin && git remote add origin https://github.com/renatagracinbr-ship-it/HMASP-Chat.git && git fetch origin && git checkout -b main origin/main && npm install --production && npm run build && sudo systemctl restart hmasp-chat
+
+════════════════════════════════════════════════════════════════
+
+OU se preferir passo a passo:
+
+1) git remote remove origin
+2) git remote add origin https://github.com/renatagracinbr-ship-it/HMASP-Chat.git
+3) git fetch origin
+4) git checkout -b main origin/main
+5) npm install --production
+6) npm run build
+7) sudo systemctl restart hmasp-chat
+
+════════════════════════════════════════════════════════════════

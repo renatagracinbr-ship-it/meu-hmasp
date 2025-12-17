@@ -1,0 +1,20 @@
+[Unit]
+Description=HMASP WhatsApp Server
+After=network.target
+
+[Service]
+Type=simple
+User=centralderegulacaohmasp
+WorkingDirectory=/home/centralderegulacaohmasp/hmasp-chat
+ExecStart=/usr/bin/node /home/centralderegulacaohmasp/hmasp-chat/server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hmasp-whatsapp
+
+# Variáveis de ambiente
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

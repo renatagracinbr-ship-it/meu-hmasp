@@ -1,0 +1,18 @@
+[Unit]
+Description=HMASP Update Server - Servidor de Atualização Remota
+After=network.target
+
+[Service]
+Type=simple
+User=sistema-whats
+WorkingDirectory=/opt/hmasp/hmasp-chat-v2
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node update-server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hmasp-updater
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando HMASP Chat Server...
+node server.js

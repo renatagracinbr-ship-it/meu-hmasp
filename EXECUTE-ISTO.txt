@@ -1,0 +1,36 @@
+════════════════════════════════════════════════════════════════
+  COPIE E COLE ESTES COMANDOS NO SEU TERMINAL (CMD OU POWERSHELL)
+════════════════════════════════════════════════════════════════
+
+PASSO 1: Conectar ao servidor
+────────────────────────────────────────────────────────────────
+
+ssh sistema-whats@10.12.40.105
+
+(Quando pedir senha, digite: Sistema@whats)
+
+────────────────────────────────────────────────────────────────
+
+PASSO 2: Depois que conectar, cole este comando:
+────────────────────────────────────────────────────────────────
+
+cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat
+
+────────────────────────────────────────────────────────────────
+
+PRONTO! Aguarde 30 segundos e acesse:
+
+http://10.12.40.105:3000
+
+Você verá a tela AZUL com logos HMASP! ✅
+
+════════════════════════════════════════════════════════════════
+
+OU TUDO EM UM COMANDO SÓ:
+════════════════════════════════════════════════════════════════
+
+ssh sistema-whats@10.12.40.105 "cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat"
+
+(Digite a senha: Sistema@whats quando pedir)
+
+════════════════════════════════════════════════════════════════

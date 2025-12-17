@@ -1,0 +1,19 @@
+============================================
+DEPLOY RÁPIDO - Frontend Azul Funcionando
+============================================
+
+EXECUTE NO SERVIDOR (ssh sistema-whats@10.12.40.105):
+
+cd /opt/hmasp/hmasp-chat-v2
+sudo systemctl stop hmasp-chat
+git pull origin main
+sudo systemctl start hmasp-chat
+
+============================================
+PRONTO!
+============================================
+
+Frontend principal: http://10.12.40.105:3000
+Diagnóstico WhatsApp: http://10.12.40.105:3000/api/dashboard
+
+============================================

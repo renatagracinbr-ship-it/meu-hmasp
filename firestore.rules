@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regras de segurança LGPD-compliant
+
+    // Função auxiliar para verificar se usuário é admin
+    function isAdmin() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Função auxiliar para verificar se usuário está ativo
+    function isActiveUser() {
+      return request.auth != null &&
+             get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.ativo == true;
+    }
+
+    // Usuários - qualquer autenticado pode criar (primeiro login)
+    // Apenas o próprio usuário pode ler seus dados
+    // Apenas admins podem alterar role e status
+    match /usuarios/{userId} {
+      // Qualquer usuário autenticado pode criar seu próprio registro
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Usuário pode ler e atualizar seus próprios dados
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+
+      // Admins podem ler e atualizar qualquer usuário
+      allow read, update: if isAdmin();
+
+      // Admins podem listar todos os usuários
+      allow list: if isAdmin();
+    }
+
+    // Conversas - apenas usuários autenticados e ativos
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Mensagens - apenas usuários autenticados e ativos
+    match /messages/{messageId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Contatos - apenas usuários autenticados e ativos
+    match /contacts/{contactId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Logs de auditoria - apenas leitura para autenticados, escrita pelo sistema
+    match /audit_logs/{logId} {
+      allow read: if request.auth != null && isActiveUser();
+      allow write: if request.auth != null;
+    }
+
+    // Configurações - apenas admins
+    match /configuracoes/{configId} {
+      allow read: if request.auth != null && isActiveUser();
+      allow write: if isAdmin();
+    }
+
+    // Settings - apenas usuários autenticados e ativos
+    match /settings/{settingId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Templates de mensagens - apenas usuários autenticados e ativos
+    match /templates/{templateId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Pacientes - apenas usuários autenticados e ativos
+    match /pacientes/{cpf} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Agenda de contatos - apenas usuários autenticados e ativos
+    match /agenda_contatos/{cpf} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+
+    // Logs de monitoramento - apenas usuários autenticados e ativos
+    match /monitoramento_logs/{docId} {
+      allow read, write: if request.auth != null && isActiveUser();
+    }
+  }
+}

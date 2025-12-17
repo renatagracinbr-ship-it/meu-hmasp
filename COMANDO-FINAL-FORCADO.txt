@@ -1,0 +1,45 @@
+╔══════════════════════════════════════════════════════════════╗
+║          COMANDO FINAL - FORÇA SUBSTITUIÇÃO                  ║
+╚══════════════════════════════════════════════════════════════╝
+
+Existem arquivos antigos que precisam ser substituídos.
+Vamos forçar a atualização!
+
+════════════════════════════════════════════════════════════════
+
+EXECUTE ESTE COMANDO (copiar e colar TUDO):
+
+════════════════════════════════════════════════════════════════
+
+git reset --hard && git fetch origin && git reset --hard origin/main && npm install --production && npm run build && sudo systemctl restart hmasp-chat
+
+════════════════════════════════════════════════════════════════
+
+O QUE FAZ:
+
+1. git reset --hard
+   → Descarta todas as mudanças locais
+
+2. git fetch origin
+   → Baixa código do GitHub
+
+3. git reset --hard origin/main
+   → FORÇA substituição pelos arquivos do GitHub
+
+4. npm install --production
+   → Instala dependências
+
+5. npm run build
+   → Compila frontend azul
+
+6. sudo systemctl restart hmasp-chat
+   → Reinicia servidor
+
+════════════════════════════════════════════════════════════════
+
+IMPORTANTE:
+- Este comando VAI APAGAR os arquivos antigos locais
+- Vai substituir por tudo que está no GitHub
+- É seguro executar!
+
+════════════════════════════════════════════════════════════════

@@ -1,0 +1,203 @@
+=======================================================
+COMANDOS PARA EXECUTAR DIRETAMENTE NO SERVIDOR
+=======================================================
+
+1. CONECTE-SE AO SERVIDOR:
+   IP: 10.12.40.105
+   User: sistema-whats
+   Pass: Sistema@whats
+
+2. COPIE E COLE ESTE BLOCO COMPLETO NO TERMINAL:
+
+sudo bash << 'EOF'
+echo "===== DIAGNÓSTICO RÁPIDO ====="
+echo "Node.js: $(node --version 2>/dev/null || echo 'NÃO INSTALADO')"
+echo "npm: $(npm --version 2>/dev/null || echo 'NÃO INSTALADO')"
+echo "PostgreSQL: $(psql --version 2>/dev/null || echo 'NÃO INSTALADO')"
+echo "Diretório existe: $([ -d /opt/hmasp/hmasp-chat-v2 ] && echo 'SIM' || echo 'NÃO')"
+ls -la /opt/hmasp/hmasp-chat-v2 2>/dev/null || echo "Diretório não encontrado"
+echo ""
+echo "===== INSTALANDO DEPENDÊNCIAS ====="
+apt-get update
+apt-get install -y curl wget git build-essential
+
+# Node.js 18
+if ! command -v node &> /dev/null; then
+    echo "Instalando Node.js 20.x LTS..."
+    curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    apt-get install -y nodejs
+fi
+
+# PostgreSQL
+if ! command -v psql &> /dev/null; then
+    echo "Instalando PostgreSQL..."
+    apt-get install -y postgresql postgresql-contrib
+    systemctl start postgresql
+    systemctl enable postgresql
+fi
+
+echo ""
+echo "===== CONFIGURANDO BANCO ====="
+sudo -u postgres psql << 'EOPSQL'
+CREATE USER hmasp_user WITH PASSWORD 'HMASPChat2024@Secure';
+CREATE DATABASE hmasp_chat OWNER hmasp_user;
+GRANT ALL PRIVILEGES ON DATABASE hmasp_chat TO hmasp_user;
+\c hmasp_chat
+GRANT ALL ON SCHEMA public TO hmasp_user;
+CREATE TABLE IF NOT EXISTS users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(100) UNIQUE NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(200),
+    role VARCHAR(50) DEFAULT 'user',
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS sessions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES users(id),
+    session_token VARCHAR(255) UNIQUE NOT NULL,
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+EOPSQL
+
+echo ""
+echo "===== INSTALANDO PROJETO ====="
+cd /opt/hmasp/hmasp-chat-v2
+
+# npm install
+npm install
+
+# Criar .env
+cat > .env << 'EOENV'
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=hmasp_chat
+DB_USER=hmasp_user
+DB_PASSWORD=HMASPChat2024@Secure
+PORT=3000
+NODE_ENV=production
+SESSION_SECRET=$(openssl rand -hex 32)
+CORS_ORIGIN=*
+WHATSAPP_SESSION_PATH=./server/.wwebjs_auth
+EOENV
+
+# Criar serviço
+cat > /etc/systemd/system/hmasp-chat.service << 'EOSERVICE'
+[Unit]
+Description=HMASP Chat WhatsApp Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=sistema-whats
+WorkingDirectory=/opt/hmasp/hmasp-chat-v2
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOSERVICE
+
+systemctl daemon-reload
+systemctl enable hmasp-chat
+systemctl start hmasp-chat
+
+echo ""
+echo "===== STATUS FINAL ====="
+systemctl status hmasp-chat --no-pager
+echo ""
+echo "===== VER LOGS ====="
+journalctl -u hmasp-chat -n 20 --no-pager
+echo ""
+echo "===== PRONTO! ====="
+echo "Acesse: http://10.12.40.105:3000"
+echo "Ver logs ao vivo: journalctl -u hmasp-chat -f"
+EOF
+
+3. SE DER ERRO, EXECUTE LINHA POR LINHA:
+
+# Atualizar sistema
+sudo apt-get update
+
+# Instalar Node.js 20.x LTS
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs
+
+# Verificar
+node --version
+npm --version
+
+# Instalar PostgreSQL
+sudo apt-get install -y postgresql postgresql-contrib
+sudo systemctl start postgresql
+
+# Configurar banco
+sudo -u postgres psql
+# No prompt do PostgreSQL, cole:
+CREATE USER hmasp_user WITH PASSWORD 'HMASPChat2024@Secure';
+CREATE DATABASE hmasp_chat OWNER hmasp_user;
+GRANT ALL PRIVILEGES ON DATABASE hmasp_chat TO hmasp_user;
+\q
+
+# Ir para projeto
+cd /opt/hmasp/hmasp-chat-v2
+
+# Instalar dependências
+npm install
+
+# Criar .env
+nano .env
+# Cole:
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=hmasp_chat
+DB_USER=hmasp_user
+DB_PASSWORD=HMASPChat2024@Secure
+PORT=3000
+NODE_ENV=production
+SESSION_SECRET=CHANGE_ME_TO_RANDOM_STRING
+CORS_ORIGIN=*
+WHATSAPP_SESSION_PATH=./server/.wwebjs_auth
+# Salve: Ctrl+X, Y, Enter
+
+# Testar manualmente
+node server.js
+
+# Se funcionar, Ctrl+C e criar serviço:
+sudo nano /etc/systemd/system/hmasp-chat.service
+# Cole:
+[Unit]
+Description=HMASP Chat WhatsApp Service
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=sistema-whats
+WorkingDirectory=/opt/hmasp/hmasp-chat-v2
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+# Salve e feche
+
+# Ativar
+sudo systemctl daemon-reload
+sudo systemctl enable hmasp-chat
+sudo systemctl start hmasp-chat
+sudo systemctl status hmasp-chat
+
+# Ver logs
+sudo journalctl -u hmasp-chat -f
+
+=======================================================
+ME ENVIE A SAÍDA DOS COMANDOS PARA EU AJUDAR!
+=======================================================

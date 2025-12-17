@@ -1,0 +1,126 @@
+═══════════════════════════════════════════════════════════════
+    INSTRUÇÕES PARA ENVIO VIA GOOGLE DRIVE
+═══════════════════════════════════════════════════════════════
+
+📦 ARQUIVO PARA UPLOAD
+───────────────────────────────────────────────────────────────
+
+Nome do arquivo: HMASP_Chat_v2.0_TabMaster_COMPLETO.zip
+Tamanho: ~29 MB
+Localização: Raiz do projeto (mesma pasta deste arquivo)
+
+═══════════════════════════════════════════════════════════════
+📤 PASSO A PASSO PARA ENVIO
+═══════════════════════════════════════════════════════════════
+
+1️⃣ FAZER UPLOAD NO GOOGLE DRIVE
+   ───────────────────────────────────────────────────────────
+   a) Acesse: https://drive.google.com
+   b) Crie uma pasta (ex: "HMASP Chat v2.0")
+   c) Arraste o arquivo: HMASP_Chat_v2.0_TabMaster_COMPLETO.zip
+   d) Aguarde upload completo (~2-5 minutos)
+
+2️⃣ CONFIGURAR COMPARTILHAMENTO
+   ───────────────────────────────────────────────────────────
+   a) Clique com botão direito no arquivo
+   b) Selecione "Compartilhar" ou "Obter link"
+   c) Em "Acesso geral", escolha:
+      • "Qualquer pessoa com o link" (se for enviar por email)
+      • OU adicione emails específicos da TI
+   d) Permissão: "Leitor" (ou "Comentarista")
+   e) Copie o link gerado
+
+3️⃣ ENVIAR EMAIL PARA TI
+   ───────────────────────────────────────────────────────────
+   Use o template em: EMAIL_PARA_TI.txt
+
+   Adicione o link do Google Drive no email:
+
+   ---
+   📦 DOWNLOAD DO SISTEMA
+
+   Link do Google Drive:
+   [COLE O LINK AQUI]
+
+   Arquivo: HMASP_Chat_v2.0_TabMaster_COMPLETO.zip
+   Tamanho: 29 MB
+   ---
+
+═══════════════════════════════════════════════════════════════
+📧 TEMPLATE DE EMAIL RÁPIDO
+═══════════════════════════════════════════════════════════════
+
+PARA: [Email da TI HMASP]
+ASSUNTO: HMASP Chat v2.0 - Sistema Tab Master
+
+───────────────────────────────────────────────────────────────
+
+Prezada equipe de TI,
+
+Disponibilizo a versão 2.0 do HMASP Chat com o Sistema Tab Master,
+que resolve o problema de mensagens duplicadas em múltiplas abas.
+
+📦 DOWNLOAD
+Link do Google Drive: [COLE O LINK]
+Arquivo: HMASP_Chat_v2.0_TabMaster_COMPLETO.zip (29 MB)
+
+📚 DOCUMENTAÇÃO INCLUÍDA NO ZIP
+• LEIA-ME_PRIMEIRO.txt - Início rápido
+• ENVIO_TI_HMASP.md - Guia completo de instalação ⭐
+• SISTEMA_TAB_MASTER.md - Documentação técnica
+• RELEASE_NOTES_v2.0.md - Novidades da versão
+
+🎯 PRINCIPAL NOVIDADE
+Sistema Tab Master com indicador visual:
+👑 ABA MASTER (dourado) = Envia mensagens
+🔄 ABA SECUNDÁRIA (cinza) = Só visualiza
+
+📋 INSTRUÇÕES
+1. Baixar o ZIP
+2. Extrair para uma pasta
+3. Ler LEIA-ME_PRIMEIRO.txt
+4. Seguir ENVIO_TI_HMASP.md
+
+Sistema testado e pronto para produção.
+
+Att,
+[Seu nome]
+
+───────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST ANTES DE ENVIAR
+═══════════════════════════════════════════════════════════════
+
+□ ZIP foi enviado para o Google Drive
+□ Link de compartilhamento foi copiado
+□ Permissões do link estão corretas
+□ Email foi escrito (use EMAIL_PARA_TI.txt como base)
+□ Link do Drive foi adicionado ao email
+□ Email foi revisado
+□ Email foi enviado para TI
+
+═══════════════════════════════════════════════════════════════
+📞 APÓS ENVIAR
+═══════════════════════════════════════════════════════════════
+
+✓ Aguarde confirmação de recebimento
+✓ Fique disponível para dúvidas
+✓ Se necessário, ofereça reunião para apresentação
+✓ Acompanhe processo de homologação
+
+═══════════════════════════════════════════════════════════════
+💡 DICAS
+═══════════════════════════════════════════════════════════════
+
+• Google Drive é mais confiável que email para arquivos grandes
+• Link compartilhável é melhor que anexo de email
+• O ZIP contém TUDO necessário para instalação
+• Toda documentação está em português
+• Sistema é retrocompatível (não quebra nada)
+
+═══════════════════════════════════════════════════════════════
+
+Boa sorte com o deploy! 🚀
+
+═══════════════════════════════════════════════════════════════

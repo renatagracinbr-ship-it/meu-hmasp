@@ -1,0 +1,161 @@
+============================================
+HMASP CHAT v2.0 - PACOTE CORRIGIDO
+============================================
+
+Hospital Militar de Área de São Paulo
+Central de Regulação
+Dezembro 2024
+
+============================================
+IMPORTANTE - LEIA ANTES DE INSTALAR
+============================================
+
+Este pacote foi CORRIGIDO e está COMPLETO.
+Todos os problemas da versão anterior foram resolvidos.
+
+============================================
+ARQUIVOS INCLUÍDOS NESTE PACOTE
+============================================
+
+✓ server/data/users.json         (Usuários do sistema)
+✓ server/data/sessions.json      (Sessões ativas)
+✓ server/data/auto-login.json    (Auto-login VM)
+✓ .env                            (Variáveis ambiente)
+✓ server.js                       (Servidor principal)
+✓ package.json                    (Dependências)
+✓ INSTALAR.sh                     (Script instalação)
+✓ database/schema.sql             (Schema PostgreSQL - opcional)
+
+============================================
+INSTALAÇÃO RÁPIDA (3 PASSOS)
+============================================
+
+1. EXTRAIR O ZIP:
+   cd /opt/hmasp/
+   unzip HMASP_Chat_v2.0_CORRIGIDO_COMPLETO.zip
+
+2. EXECUTAR INSTALAÇÃO:
+   cd hmasp-chat-v2
+   chmod +x INSTALAR.sh
+   sudo bash INSTALAR.sh
+
+3. ACESSAR O SISTEMA:
+   Navegador: http://IP-SERVIDOR:3000
+   Login: admin
+   Senha: Admin@2024
+
+============================================
+USUÁRIOS PADRÃO
+============================================
+
+admin / Admin@2024           (Administrador)
+operador / Operador@2024     (Operador)
+visualizador / Visualizador@2024  (Apenas leitura)
+
+⚠️ ALTERE AS SENHAS APÓS PRIMEIRO ACESSO!
+
+============================================
+O QUE FOI CORRIGIDO
+============================================
+
+✓ Arquivos JSON de autenticação criados
+✓ Arquivo .env configurado corretamente
+✓ Schema PostgreSQL corrigido (hmasp_user)
+✓ Script de instalação completo
+✓ Permissões ajustadas
+✓ Documentação atualizada
+
+============================================
+ARQUITETURA DO SISTEMA
+============================================
+
+Este sistema usa ARQUIVOS JSON para autenticação.
+PostgreSQL é OPCIONAL (para funcionalidades futuras).
+
+NÃO É NECESSÁRIO instalar PostgreSQL para o sistema funcionar!
+
+============================================
+REQUISITOS MÍNIMOS
+============================================
+
+- Ubuntu 20.04+ ou Debian 11+
+- 2 GB RAM
+- 10 GB disco
+- Node.js 20.x LTS (instalado automaticamente, suporte até 2026)
+
+============================================
+DOCUMENTAÇÃO
+============================================
+
+Leia os seguintes arquivos para mais detalhes:
+
+1. CORRECOES-URGENTES-TI.md
+   → Explica todos os problemas corrigidos
+
+2. INSTRUCOES-SERVIDOR.md
+   → Instruções detalhadas passo a passo
+
+3. EXECUTAR-NO-SERVIDOR.txt
+   → Comandos para copiar e colar
+
+============================================
+SUPORTE
+============================================
+
+Em caso de problemas:
+
+1. Verifique os logs:
+   sudo journalctl -u hmasp-chat -n 100
+
+2. Teste manualmente:
+   cd /opt/hmasp/hmasp-chat-v2
+   node server.js
+
+3. Verifique arquivos críticos:
+   ls -la server/data/
+
+============================================
+CHECKLIST DE VALIDAÇÃO
+============================================
+
+Após instalação, verifique:
+
+□ Serviço está rodando
+  sudo systemctl status hmasp-chat
+
+□ Porta 3000 está aberta
+  netstat -tlnp | grep :3000
+
+□ Site acessível
+  curl http://localhost:3000
+
+□ Login funciona
+  Acesse no navegador e teste
+
+□ WhatsApp conecta
+  Escaneie QR Code
+
+============================================
+PRÓXIMOS PASSOS
+============================================
+
+1. Instale o sistema
+2. Acesse e faça login
+3. Altere senhas padrão
+4. Configure WhatsApp
+5. Teste envio de mensagens
+6. Configure backup automático
+
+============================================
+VERSÃO DO PACOTE
+============================================
+
+Versão: 2.0 CORRIGIDO
+Data: 02/12/2024
+Status: PRODUÇÃO - PRONTO PARA USO
+
+============================================
+
+BOA INSTALAÇÃO!
+
+============================================

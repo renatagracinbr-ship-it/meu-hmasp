@@ -1,0 +1,60 @@
+╔══════════════════════════════════════════════════════════════╗
+║                    PARA TI DO HMASP                          ║
+║                  COPIAR E COLAR APENAS                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+PASSO 1: Abrir PuTTY ou Terminal
+────────────────────────────────────────────────────────────────
+
+PASSO 2: Conectar no servidor
+────────────────────────────────────────────────────────────────
+
+Servidor: 10.12.40.105
+Usuário: sistema-whats
+Senha: Sistema@whats
+
+────────────────────────────────────────────────────────────────
+
+PASSO 3: COPIAR E COLAR ESTE COMANDO (TUDO DE UMA VEZ):
+────────────────────────────────────────────────────────────────
+
+cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat && echo "" && echo "===== SUCESSO! =====" && echo "Acesse: http://10.12.40.105:3000"
+
+────────────────────────────────────────────────────────────────
+
+PRONTO! Aguardar 30 segundos e acessar:
+
+http://10.12.40.105:3000
+
+A tela AZUL com logos do HMASP vai aparecer! ✅
+
+────────────────────────────────────────────────────────────────
+
+SE DER ERRO "sudo: senha necessária" ou similar:
+────────────────────────────────────────────────────────────────
+
+Digite a senha: Sistema@whats
+
+E aperte Enter
+
+────────────────────────────────────────────────────────────────
+
+O QUE ESSE COMANDO FAZ (para referência):
+────────────────────────────────────────────────────────────────
+
+1. Entra na pasta do projeto
+2. Baixa a versão nova do sistema
+3. Instala bibliotecas necessárias
+4. Compila a tela azul
+5. Reinicia o servidor
+
+Tempo total: 2-3 minutos
+
+────────────────────────────────────────────────────────────────
+
+IMPORTANTE:
+- Se pedir senha em algum momento, digite: Sistema@whats
+- Não interrompa o comando enquanto está executando
+- Aguarde aparecer "SUCESSO!"
+
+╔══════════════════════════════════════════════════════════════╗

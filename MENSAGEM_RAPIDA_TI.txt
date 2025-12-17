@@ -1,0 +1,39 @@
+═══════════════════════════════════════════════════════════════
+    📱 MENSAGEM RÁPIDA PARA ENVIAR À TI
+═══════════════════════════════════════════════════════════════
+
+Copie e cole este texto no WhatsApp/Email para a TI:
+
+───────────────────────────────────────────────────────────────
+
+🚨 ATUALIZAÇÃO URGENTE - HMASP Chat
+
+Identifiquei o problema! Vocês estavam acessando o servidor
+ERRADO. A tela do QR Code NÃO é a interface principal.
+
+📦 NOVO ZIP CORRIGIDO
+Link: [COLE LINK DO GOOGLE DRIVE]
+
+✅ INSTALAÇÃO CORRETA (3 passos):
+1. Extrair ZIP
+2. Executar: INICIAR_PRODUCAO.bat
+3. Acessar: http://localhost:3000
+
+📖 ARQUIVO PRINCIPAL:
+Ler primeiro: INSTRUCOES_RAPIDAS_TI.txt
+
+🎯 TELA CORRETA que devem ver:
+✅ Tela azul com logos HMASP
+✅ Formulário de login
+✅ Sistema Tab Master funcionando
+
+❌ NÃO é a tela de QR Code do WhatsApp!
+
+Desculpe pela confusão! Agora o sistema está simplificado
+para produção.
+
+Dúvidas? Leia INSTRUCOES_RAPIDAS_TI.txt dentro do ZIP.
+
+───────────────────────────────────────────────────────────────
+
+═══════════════════════════════════════════════════════════════

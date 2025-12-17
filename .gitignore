@@ -1,0 +1,61 @@
+# Dependências
+node_modules/
+electron/node_modules/
+
+# Build
+dist/
+
+# Autenticação local (NÃO COMMITAR!)
+server/data/
+
+# Banco de dados SQLite (NÃO COMMITAR!)
+*.db
+*.db-shm
+*.db-wal
+server/database/*.db
+server/database/*.db-shm
+server/database/*.db-wal
+
+# WhatsApp (sessão local - NÃO COMMITAR!)
+.wwebjs_auth/
+.wwebjs_cache/
+session/
+
+# Backups
+backups/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Variáveis de ambiente (NÃO COMMITAR!)
+.env
+.env.local
+.env.*.local
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos antigos (organizados)
+_arquivos_antigos/
+
+# Temporários
+*.tmp
+*.temp
+.cache/
+nul
+
+# Arquivos temporários do Word
+~.docx
+~.doc

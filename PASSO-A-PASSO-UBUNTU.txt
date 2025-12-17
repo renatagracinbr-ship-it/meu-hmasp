@@ -1,0 +1,231 @@
+================================================================================
+  COMO TESTAR NO UBUNTU (WSL) - PASSO A PASSO
+================================================================================
+
+🎯 OBJETIVO: Testar o app no Ubuntu/WSL para depois instalar na VM do HMASP
+
+
+📝 PASSO A PASSO COMPLETO
+================================================================================
+
+PASSO 1: Abrir PowerShell
+--------------------------
+1. Pressione Windows + X
+2. Clique em "Windows PowerShell" ou "Terminal"
+
+
+PASSO 2: Entrar no Ubuntu
+--------------------------
+Digite no PowerShell:
+
+    wsl
+
+Você verá o prompt mudar para algo como:
+    renata@DESKTOP-XXXXX:~$
+
+Isso significa que você está dentro do Ubuntu!
+
+
+PASSO 3: Navegar até o Projeto
+-------------------------------
+Digite (copie e cole):
+
+    cd "/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas"
+
+Confirme que está no lugar certo:
+
+    pwd
+
+Deve mostrar: /mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas
+
+
+PASSO 4: Executar o Setup (PRIMEIRA VEZ APENAS)
+------------------------------------------------
+Digite:
+
+    ./setup-ubuntu.sh
+
+O script vai:
+- Atualizar o sistema
+- Verificar Node.js (já instalado: v18.19.1)
+- Instalar dependências do sistema
+- Executar npm install
+- Criar diretórios necessários
+- Criar arquivo .env
+
+⏱️ Isso pode demorar 2-5 minutos
+
+
+PASSO 5: Verificar se Tudo OK
+------------------------------
+Após o setup, digite:
+
+    node --version
+
+Deve mostrar: v18.19.1
+
+    npm --version
+
+Deve mostrar: 9.2.0
+
+    ls -la .env
+
+Deve mostrar o arquivo .env
+
+
+PASSO 6: Iniciar o Servidor
+----------------------------
+Opção A - Modo Simples (terminal fica ocupado):
+
+    node server.js
+
+Você verá as mensagens do servidor aqui.
+Para parar: Ctrl+C
+
+
+Opção B - Modo Background (melhor para testes):
+
+    nohup node server.js > server.log 2>&1 &
+
+O servidor roda em segundo plano.
+
+
+PASSO 7: Verificar se Está Rodando
+-----------------------------------
+Digite:
+
+    ps aux | grep "node server.js" | grep -v grep
+
+Se aparecer uma linha com "node server.js", está rodando! ✅
+
+
+PASSO 8: Testar no Navegador
+-----------------------------
+Abra o navegador no Windows e acesse:
+
+    http://localhost:3000
+
+Você deve ver a interface do HMASP Chat!
+
+
+PASSO 9: Ver os Logs (se rodou em background)
+----------------------------------------------
+Para ver o que o servidor está fazendo:
+
+    tail -f server.log
+
+Para sair da visualização: Ctrl+C
+
+
+PASSO 10: Parar o Servidor
+---------------------------
+Se rodou em modo simples:
+    Ctrl+C no terminal
+
+Se rodou em background:
+    pkill -f "node server.js"
+
+Verificar se parou:
+    ps aux | grep "node server.js" | grep -v grep
+
+Se não aparecer nada, parou! ✅
+
+
+================================================================================
+  COMANDOS RESUMIDOS (COPIE E COLE)
+================================================================================
+
+# Entrar no Ubuntu
+wsl
+
+# Ir para o projeto
+cd "/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas"
+
+# Setup (primeira vez)
+./setup-ubuntu.sh
+
+# Iniciar servidor
+node server.js
+
+# OU em background:
+nohup node server.js > server.log 2>&1 &
+
+# Ver se está rodando
+ps aux | grep "node server.js" | grep -v grep
+
+# Ver logs
+tail -f server.log
+
+# Parar servidor
+pkill -f "node server.js"
+
+
+================================================================================
+  DEPOIS DE TESTAR AQUI
+================================================================================
+
+Quando estiver tudo OK no seu Ubuntu/WSL, para instalar na VM do HMASP:
+
+1. Copie os seguintes arquivos para a VM:
+   - setup-ubuntu.sh
+   - server.js
+   - package.json
+   - .env (ajuste as configurações!)
+   - Toda a pasta "server/"
+   - Todos os arquivos do projeto
+
+2. Na VM do HMASP, execute:
+   ./setup-ubuntu.sh
+
+3. Configure o .env com as credenciais do HMASP
+
+4. Inicie: node server.js
+
+5. Configure como serviço systemd (para iniciar automaticamente)
+
+
+================================================================================
+  DICAS IMPORTANTES
+================================================================================
+
+✅ O Ubuntu do WSL é LINUX de verdade - mesmos comandos da VM
+✅ Tudo que funcionar aqui, funcionará na VM do HMASP
+✅ Use este ambiente para testar antes de mexer na VM de produção
+✅ Os arquivos do Windows ficam em /mnt/c/
+✅ Ctrl+C para interromper processos
+✅ Ctrl+D ou "exit" para sair do Ubuntu e voltar ao PowerShell
+
+
+================================================================================
+  SOLUÇÃO DE PROBLEMAS
+================================================================================
+
+Problema: "permission denied"
+Solução:  chmod +x setup-ubuntu.sh
+
+Problema: "npm install falha"
+Solução:  sudo apt install build-essential python3
+
+Problema: "porta 3000 em uso"
+Solução:  pkill -f "node server.js"
+
+Problema: "não acha o arquivo"
+Solução:  Confirme que está no diretório certo com: pwd
+
+
+================================================================================
+  PRÓXIMOS PASSOS
+================================================================================
+
+1. ☐ Abrir PowerShell
+2. ☐ Digitar: wsl
+3. ☐ Navegar: cd "/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas"
+4. ☐ Executar: ./setup-ubuntu.sh
+5. ☐ Iniciar: node server.js
+6. ☐ Testar: http://localhost:3000
+7. ☐ Se funcionar, replicar na VM do HMASP!
+
+
+================================================================================
+Precisa de ajuda? Veja também: GUIA-UBUNTU.md
+================================================================================

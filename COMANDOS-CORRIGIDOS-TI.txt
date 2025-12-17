@@ -1,0 +1,68 @@
+╔══════════════════════════════════════════════════════════════╗
+║              COMANDOS CORRIGIDOS - PARA TI                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+O erro aconteceu porque a pasta não é um repositório Git.
+Vamos corrigir isso!
+
+════════════════════════════════════════════════════════════════
+
+EXECUTE ESTES COMANDOS (um por vez):
+
+════════════════════════════════════════════════════════════════
+
+1) Entrar na pasta do projeto:
+────────────────────────────────────────────────────────────────
+cd /opt/hmasp/hmasp-chat-v2
+
+════════════════════════════════════════════════════════════════
+
+2) Inicializar Git e conectar ao GitHub:
+────────────────────────────────────────────────────────────────
+git init
+git remote add origin https://github.com/renatagracinbr-ship-it/HMASP-Chat.git
+
+════════════════════════════════════════════════════════════════
+
+3) Baixar código do GitHub:
+────────────────────────────────────────────────────────────────
+git fetch origin
+git checkout -b main origin/main
+
+════════════════════════════════════════════════════════════════
+
+4) Instalar dependências:
+────────────────────────────────────────────────────────────────
+npm install --production
+
+════════════════════════════════════════════════════════════════
+
+5) Compilar frontend:
+────────────────────────────────────────────────────────────────
+npm run build
+
+════════════════════════════════════════════════════════════════
+
+6) Reiniciar servidor:
+────────────────────────────────────────────────────────────────
+sudo systemctl restart hmasp-chat
+
+════════════════════════════════════════════════════════════════
+
+7) Verificar status:
+────────────────────────────────────────────────────────────────
+sudo systemctl status hmasp-chat
+
+════════════════════════════════════════════════════════════════
+
+PRONTO! Acessar: http://10.12.40.105:3000
+
+Deve aparecer a tela AZUL com logos HMASP! ✅
+
+════════════════════════════════════════════════════════════════
+
+OU EXECUTAR TUDO DE UMA VEZ (copiar e colar):
+
+cd /opt/hmasp/hmasp-chat-v2 && git init && git remote add origin https://github.com/renatagracinbr-ship-it/HMASP-Chat.git && git fetch origin && git checkout -b main origin/main && npm install --production && npm run build && sudo systemctl restart hmasp-chat && echo "" && echo "===== SUCESSO! =====" && echo "Acesse: http://10.12.40.105:3000"
+
+════════════════════════════════════════════════════════════════

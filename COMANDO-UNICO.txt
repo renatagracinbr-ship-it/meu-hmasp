@@ -1,0 +1,86 @@
+╔══════════════════════════════════════════════════════════════╗
+║           COMANDO ÚNICO PARA COPIAR E COLAR                  ║
+║                 NO SERVIDOR DO HMASP                         ║
+╚══════════════════════════════════════════════════════════════╝
+
+Alguém precisa executar este comando no servidor 10.12.40.105:
+
+────────────────────────────────────────────────────────────────
+
+cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat
+
+────────────────────────────────────────────────────────────────
+
+OPÇÕES PARA EXECUTAR:
+
+1. VIA SSH (Ideal):
+   ssh sistema-whats@10.12.40.105
+   Senha: Sistema@whats
+
+   Cole o comando acima e pressione Enter
+
+2. VIA CONSOLE FÍSICO:
+   - Vá até o servidor fisicamente
+   - Faça login como sistema-whats
+   - Cole o comando
+
+3. VIA ANYDESK/TEAMVIEWER (se tiver):
+   - Acesse o servidor remotamente
+   - Abra terminal
+   - Cole o comando
+
+────────────────────────────────────────────────────────────────
+
+O QUE ESTE COMANDO FAZ:
+
+1. cd /opt/hmasp/hmasp-chat-v2
+   → Entra no diretório do projeto
+
+2. git pull origin main
+   → Baixa código novo do GitHub
+
+3. npm install --production
+   → Instala dependências necessárias
+
+4. npm run build
+   → Compila o frontend azul
+
+5. sudo systemctl restart hmasp-chat
+   → Reinicia o servidor
+
+────────────────────────────────────────────────────────────────
+
+APÓS EXECUTAR:
+
+Acesse: http://10.12.40.105:3000
+
+Você verá a TELA AZUL com logos HMASP ✅
+
+────────────────────────────────────────────────────────────────
+
+POR QUE NÃO CONSIGO FAZER VIA HTTP?
+
+O código ANTIGO que está rodando no servidor NÃO tem endpoint
+de atualização. Ele só tem a página de diagnóstico WhatsApp.
+
+O código NOVO (no GitHub) tem o endpoint /api/force-update,
+mas para instalar o código novo... precisa atualizar o código! 😅
+
+É um problema de "ovo e galinha".
+
+────────────────────────────────────────────────────────────────
+
+SOLUÇÃO RÁPIDA:
+
+Ligue para TI, mostre esta tela e peça para executar o comando.
+São 10 segundos de trabalho.
+
+Ou envie por WhatsApp/Email para alguém da TI que tenha acesso.
+
+────────────────────────────────────────────────────────────────
+
+COMMIT NO GITHUB: 825ad59
+DATA: 03/12/2024
+TUDO ESTÁ PRONTO - SÓ FALTA EXECUTAR 1 COMANDO!
+
+╔══════════════════════════════════════════════════════════════╗

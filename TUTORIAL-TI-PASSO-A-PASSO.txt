@@ -1,0 +1,139 @@
+╔══════════════════════════════════════════════════════════════╗
+║           TUTORIAL PARA TI - PASSO A PASSO SIMPLES           ║
+║                    (COM PRINTS DE TELA)                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+📋 TEMPO TOTAL: 5 minutos
+
+════════════════════════════════════════════════════════════════
+PASSO 1: Abrir programa para conectar no servidor
+════════════════════════════════════════════════════════════════
+
+Opção A: Se tiver PuTTY instalado
+  → Abrir PuTTY
+  → Em "Host Name" digitar: 10.12.40.105
+  → Clicar em "Open"
+
+Opção B: Se estiver no Windows 10/11
+  → Apertar tecla Windows
+  → Digitar: cmd
+  → Apertar Enter
+
+Opção C: Se estiver no Linux
+  → Abrir Terminal
+
+════════════════════════════════════════════════════════════════
+PASSO 2: Conectar no servidor
+════════════════════════════════════════════════════════════════
+
+Digite (ou copie e cole):
+
+ssh sistema-whats@10.12.40.105
+
+Aperte Enter
+
+Vai pedir senha. Digite:
+
+Sistema@whats
+
+Aperte Enter
+
+VOCÊ VERÁ ALGO COMO:
+
+sistema-whats@proxmox3-whatsapp:~$
+
+Isso significa que CONECTOU! ✅
+
+════════════════════════════════════════════════════════════════
+PASSO 3: Executar o comando de atualização
+════════════════════════════════════════════════════════════════
+
+COPIE TUDO ISSO (linha única, pode parecer grande mas é só 1 linha):
+
+cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat && echo "" && echo "===== SUCESSO! =====" && echo "Acesse: http://10.12.40.105:3000"
+
+COLE no terminal
+
+Aperte Enter
+
+AGUARDE! Vai aparecer várias mensagens passando na tela:
+
+- "Already up to date" ou "Updating..." ← Git baixando código
+- "up to date" ← NPM instalando
+- "✓ built in 30s" ← Sistema compilando
+- "===== SUCESSO! =====" ← PRONTO!
+
+Se pedir senha em algum momento, digite: Sistema@whats
+
+════════════════════════════════════════════════════════════════
+PASSO 4: Verificar se funcionou
+════════════════════════════════════════════════════════════════
+
+Abra o navegador e acesse:
+
+http://10.12.40.105:3000
+
+ANTES: Aparecia tela ROXA/LARANJA com QR Code ❌
+DEPOIS: Aparece tela AZUL com logos HMASP ✅
+
+════════════════════════════════════════════════════════════════
+ERROS COMUNS E SOLUÇÕES
+════════════════════════════════════════════════════════════════
+
+Erro 1: "Permission denied"
+  Solução: Digite a senha: Sistema@whats
+
+Erro 2: "sudo: a password is required"
+  Solução: Digite a senha: Sistema@whats
+
+Erro 3: "Connection refused" ou "timeout"
+  Solução: Verifique se está conectado na rede do HMASP
+
+Erro 4: "git: command not found"
+  Solução: Instalar git primeiro:
+    sudo apt-get update
+    sudo apt-get install git
+
+Erro 5: "npm: command not found"
+  Solução: Instalar Node.js 20.x LTS primeiro:
+    curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+
+════════════════════════════════════════════════════════════════
+PARA ENVIAR PRINT DE SUCESSO
+════════════════════════════════════════════════════════════════
+
+Quando aparecer "===== SUCESSO! =====" no terminal:
+  → Tire print (tecla Print Screen)
+  → Envie para confirmar
+
+E também:
+  → Abra http://10.12.40.105:3000 no navegador
+  → Tire print da tela azul
+  → Envie para confirmar
+
+════════════════════════════════════════════════════════════════
+CONTATO EM CASO DE DÚVIDAS
+════════════════════════════════════════════════════════════════
+
+Se algo der errado, tire print da tela com o erro e envie.
+
+O comando é SEGURO:
+- Só atualiza o sistema
+- Não apaga nada
+- Pode executar sem medo
+
+════════════════════════════════════════════════════════════════
+RESUMO ULTRA RÁPIDO
+════════════════════════════════════════════════════════════════
+
+1. Abrir terminal/PuTTY
+2. ssh sistema-whats@10.12.40.105 (senha: Sistema@whats)
+3. Colar: cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install --production && npm run build && sudo systemctl restart hmasp-chat
+4. Aguardar aparecer "SUCESSO!"
+5. Acessar http://10.12.40.105:3000
+6. Tirar print da tela azul
+
+PRONTO! ✅
+
+╔══════════════════════════════════════════════════════════════╗

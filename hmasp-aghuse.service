@@ -1,0 +1,20 @@
+[Unit]
+Description=HMASP Chat - Servidor AGHUse Standalone (Porta 3001)
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=sistema-whats
+WorkingDirectory=/opt/hmasp/hmasp-chat-v2
+ExecStart=/usr/bin/node /opt/hmasp/hmasp-chat-v2/server-aghuse-standalone.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=hmasp-aghuse
+
+# Variáveis de ambiente
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

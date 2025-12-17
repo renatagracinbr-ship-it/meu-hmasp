@@ -1,0 +1,18 @@
+╔══════════════════════════════════════════════════════════════╗
+║           COPIE E COLE ESTA LINHA NO TERMINAL                ║
+╚══════════════════════════════════════════════════════════════╝
+
+cd /opt/hmasp/hmasp-chat-v2 && git config --global --add safe.directory /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install && npm run build && sudo systemctl restart hmasp-chat && sleep 3 && curl -s http://localhost:3000/api/aghuse/test-connection && echo "" && echo "✅ CONCLUÍDO! Acesse http://10.12.40.105:3000"
+
+════════════════════════════════════════════════════════════════
+
+TEMPO: 3 minutos
+RESULTADO: AGHUse VERDE ✅
+
+════════════════════════════════════════════════════════════════
+
+SE DER ERRO DE PERMISSÃO, EXECUTE ANTES:
+
+sudo chown -R sistema-whats:sistema-whats /opt/hmasp/hmasp-chat-v2
+
+════════════════════════════════════════════════════════════════

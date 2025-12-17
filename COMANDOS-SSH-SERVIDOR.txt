@@ -1,0 +1,240 @@
+============================================
+COMANDOS ÚTEIS - Servidor HMASP WhatsApp
+============================================
+
+Servidor: 10.12.40.105 (Proxmox3 - WhatsApp)
+Usuário: sistema-whats
+Senha: Sistema@whats
+Aplicação: http://10.12.40.105:3000
+
+============================================
+CONECTAR VIA SSH
+============================================
+
+ssh sistema-whats@10.12.40.105
+
+============================================
+STATUS DO SISTEMA
+============================================
+
+# Ver status do serviço
+sudo systemctl status hmasp-chat
+
+# Ver logs em tempo real
+sudo journalctl -u hmasp-chat -f
+
+# Ver últimas 100 linhas de log
+sudo journalctl -u hmasp-chat -n 100
+
+# Ver logs de hoje
+sudo journalctl -u hmasp-chat --since today
+
+============================================
+GERENCIAR SERVIÇO
+============================================
+
+# Parar serviço
+sudo systemctl stop hmasp-chat
+
+# Iniciar serviço
+sudo systemctl start hmasp-chat
+
+# Reiniciar serviço
+sudo systemctl restart hmasp-chat
+
+# Status detalhado
+sudo systemctl status hmasp-chat --no-pager -l
+
+============================================
+VERIFICAR PORTA E PROCESSOS
+============================================
+
+# Ver se porta 3000 está aberta
+netstat -tlnp | grep :3000
+
+# Ver processos Node.js
+ps aux | grep node
+
+# Ver uso de memória
+free -h
+
+# Ver espaço em disco
+df -h
+
+============================================
+ARQUIVOS E DIRETÓRIOS
+============================================
+
+# Ir para diretório do projeto
+cd /opt/hmasp/hmasp-chat-v2
+
+# Listar arquivos
+ls -la
+
+# Ver conteúdo do .env
+cat .env
+
+# Ver usuários cadastrados
+cat server/data/users.json
+
+# Ver sessões ativas
+cat server/data/sessions.json
+
+============================================
+TESTAR APLICAÇÃO
+============================================
+
+# Testar localmente
+curl http://localhost:3000
+
+# Status da API
+curl http://localhost:3000/api/status
+
+# Ver QR Code (base64)
+curl http://localhost:3000/api/qr
+
+============================================
+BACKUP E MANUTENÇÃO
+============================================
+
+# Criar backup
+sudo tar -czf /backup/hmasp-chat-$(date +%Y%m%d).tar.gz /opt/hmasp/hmasp-chat-v2/
+
+# Backup apenas dos dados
+cd /opt/hmasp/hmasp-chat-v2
+sudo tar -czf /backup/dados-$(date +%Y%m%d).tar.gz server/data/ .env
+
+# Limpar sessão WhatsApp (desconectar)
+sudo systemctl stop hmasp-chat
+rm -rf server/.wwebjs_auth
+sudo systemctl start hmasp-chat
+
+============================================
+ATUALIZAR CÓDIGO
+============================================
+
+# Fazer pull do GitHub
+cd /opt/hmasp/hmasp-chat-v2
+git pull origin main
+
+# Reinstalar dependências
+npm install --production
+
+# Reiniciar serviço
+sudo systemctl restart hmasp-chat
+
+============================================
+RESOLVER PROBLEMAS COMUNS
+============================================
+
+# Problema: Porta 3000 em uso
+sudo lsof -i :3000
+sudo kill -9 [PID]
+
+# Problema: Módulos faltando
+cd /opt/hmasp/hmasp-chat-v2
+rm -rf node_modules package-lock.json
+npm install --production
+
+# Problema: Permissões incorretas
+sudo chown -R sistema-whats:sistema-whats /opt/hmasp/hmasp-chat-v2
+chmod 700 server/data
+chmod 600 server/data/*.json
+
+# Problema: Chromium não encontrado
+sudo apt-get update
+sudo apt-get install -y chromium-browser chromium-codecs-ffmpeg
+
+============================================
+MONITORAMENTO
+============================================
+
+# CPU e Memória do processo
+top -p $(pgrep -f "node server.js")
+
+# Ver conexões ativas
+netstat -an | grep :3000
+
+# Espaço usado pelo projeto
+du -sh /opt/hmasp/hmasp-chat-v2
+
+# Logs do sistema
+dmesg | tail -50
+
+============================================
+INFORMAÇÕES DO SISTEMA
+============================================
+
+# Versão do Node.js
+node --version
+
+# Versão do npm
+npm --version
+
+# Informações do servidor
+uname -a
+
+# Uptime
+uptime
+
+# Uso de recursos
+htop
+
+============================================
+API REST - ENDPOINTS DISPONÍVEIS
+============================================
+
+GET  /api/status          Status do WhatsApp
+GET  /api/qr              QR Code para conexão
+GET  /api/chats           Lista de conversas
+POST /api/send            Enviar mensagem
+GET  /api/profile         Perfil conectado
+
+# Exemplos:
+
+# Status
+curl http://localhost:3000/api/status
+
+# Enviar mensagem (quando conectado)
+curl -X POST http://localhost:3000/api/send \
+  -H "Content-Type: application/json" \
+  -d '{"phone":"5511999999999","message":"Teste"}'
+
+============================================
+FIREWALL
+============================================
+
+# Ver status do UFW
+sudo ufw status
+
+# Liberar porta 3000
+sudo ufw allow 3000/tcp
+
+# Ver regras
+sudo ufw status numbered
+
+============================================
+USUÁRIOS DO SISTEMA
+============================================
+
+Usuário: admin
+Senha: Admin@2024
+Perfil: Administrador
+
+Usuário: operador
+Senha: Operador@2024
+Perfil: Operador
+
+Usuário: visualizador
+Senha: Visualizador@2024
+Perfil: Visualizador
+
+⚠️ ALTERAR SENHAS após primeiro acesso!
+
+============================================
+REPOSITÓRIO GITHUB
+============================================
+
+https://github.com/renatagracinbr-ship-it/HMASP-Chat.git
+
+============================================

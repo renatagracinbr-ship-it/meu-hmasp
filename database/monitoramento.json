@@ -1,0 +1,88 @@
+{
+  "config": {
+    "ativo": true,
+    "ultimaVerificacao": "2025-12-02T18:42:44.123Z",
+    "totalEnviadas": 0,
+    "totalFalhas": 0,
+    "atualizadoEm": "2025-12-02T18:42:44.123Z"
+  },
+  "consultasProcessadas": {
+    "123456": {
+      "consultaNumero": "123456",
+      "status": "enviado",
+      "paciente": "Jo�o Silva",
+      "telefone": "+5511999999999",
+      "messageId": "",
+      "queueId": "",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T00:42:26.270Z"
+    },
+    "511796": {
+      "consultaNumero": 511796,
+      "status": "enviado",
+      "paciente": "RENATA GRACIN RUSSEL SEIXAS",
+      "telefone": "+5511974878925",
+      "messageId": "",
+      "queueId": "msg_1764640080718_rrr1mtz1r",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T01:48:00.722Z"
+    },
+    "512225": {
+      "consultaNumero": 512225,
+      "status": "enviado",
+      "paciente": "RENATA GRACIN RUSSEL SEIXAS",
+      "telefone": "+5511974878925",
+      "messageId": "",
+      "queueId": "msg_1764682929992_7pg6mdf2w",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T13:42:09.999Z"
+    },
+    "512231": {
+      "consultaNumero": 512231,
+      "status": "enviado",
+      "paciente": "RENATA GRACIN RUSSEL SEIXAS",
+      "telefone": "+5511974878925",
+      "messageId": "",
+      "queueId": "msg_1764686135221_ukooyebjs",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T14:35:35.227Z"
+    },
+    "523563": {
+      "consultaNumero": 523563,
+      "status": "enviado",
+      "paciente": "RENATA GRACIN RUSSEL SEIXAS",
+      "telefone": "+5511974878925",
+      "messageId": "",
+      "queueId": "msg_1764676857261_q9f1a5zaq",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T12:00:57.265Z"
+    },
+    "730083": {
+      "consultaNumero": 730083,
+      "status": "enviado",
+      "paciente": "RENATA GRACIN RUSSEL SEIXAS",
+      "telefone": "+5511974878925",
+      "messageId": "",
+      "queueId": "msg_1764681228475_473h5btoo",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T13:13:48.480Z"
+    },
+    "733771": {
+      "consultaNumero": 733771,
+      "status": "enviado",
+      "paciente": "MARCELO RIBEIRO BARBOZA",
+      "telefone": "+5511983957316",
+      "messageId": "",
+      "queueId": "msg_1764687166753_jvoh9dq0u",
+      "erro": "",
+      "tentativas": 1,
+      "processadoEm": "2025-12-02T14:52:46.758Z"
+    }
+  }
+}

@@ -1,0 +1,153 @@
+================================================================================
+                    HMASP CHAT - COMECE AQUI
+================================================================================
+
+👋 OLรก!
+
+Este projeto pode ser executado no UBUNTU (Linux) para melhor compatibilidade.
+
+Você tem 2 ambientes:
+1. Ubuntu/WSL no seu Windows (para TESTAR)
+2. VM Ubuntu do HMASP (para PRODUÇÃO)
+
+
+================================================================================
+  🧪 TESTAR NO SEU COMPUTADOR (Ubuntu/WSL)
+================================================================================
+
+SIGA ESTE ARQUIVO:
+    📄 PASSO-A-PASSO-UBUNTU.txt
+
+RESUMO RÁPIDO:
+    1. Abrir PowerShell
+    2. Digitar: wsl
+    3. Digitar: cd "/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas"
+    4. Digitar: ./setup-ubuntu.sh
+    5. Digitar: node server.js
+    6. Acessar: http://localhost:3000
+
+
+================================================================================
+  🚀 INSTALAR NA VM DO HMASP (Produção)
+================================================================================
+
+DEPOIS DE TESTAR AQUI, SIGA ESTE ARQUIVO:
+    📄 INSTALACAO-VM-HMASP.md
+
+RESUMO:
+    1. Transferir arquivos para a VM
+    2. Executar setup-ubuntu.sh na VM
+    3. Configurar .env com dados do HMASP
+    4. Criar serviço systemd (inicia automaticamente)
+    5. Configurar backup automático
+
+
+================================================================================
+  📚 DOCUMENTAÇÃO DISPONÍVEL
+================================================================================
+
+Para TESTAR no seu Windows (Ubuntu/WSL):
+    ✅ PASSO-A-PASSO-UBUNTU.txt      ← COMECE POR ESTE!
+    ✅ GUIA-UBUNTU.md                ← Guia completo e detalhado
+    ✅ LEIA-ME-UBUNTU.txt            ← Referência rápida
+
+Para INSTALAR na VM do HMASP:
+    ✅ INSTALACAO-VM-HMASP.md        ← Guia completo de produção
+
+Scripts de Instalação:
+    ✅ setup-ubuntu.sh               ← Instala tudo automaticamente
+
+Scripts de Execução (Ubuntu/WSL):
+    ✅ start-ubuntu.sh               ← Inicia o servidor
+    ✅ stop-ubuntu.sh                ← Para o servidor
+
+Scripts Windows (Atalhos):
+    ✅ iniciar-wsl.bat               ← Clique duplo para iniciar
+    ✅ parar-wsl.bat                 ← Clique duplo para parar
+
+
+================================================================================
+  🎯 FLUXO RECOMENDADO
+================================================================================
+
+ETAPA 1: TESTAR NO SEU COMPUTADOR
+----------------------------------
+1. Abra: PASSO-A-PASSO-UBUNTU.txt
+2. Siga as instruções passo a passo
+3. Teste todas as funcionalidades
+4. Confirme que tudo funciona
+
+ETAPA 2: INSTALAR NA VM DO HMASP
+---------------------------------
+1. Abra: INSTALACAO-VM-HMASP.md
+2. Transfira os arquivos para a VM
+3. Execute o setup
+4. Configure como serviço systemd
+5. Configure backups automáticos
+
+ETAPA 3: MANUTENÇÃO
+--------------------
+Use os comandos do systemd para gerenciar:
+- sudo systemctl start hmasp-chat
+- sudo systemctl stop hmasp-chat
+- sudo systemctl status hmasp-chat
+- sudo journalctl -u hmasp-chat -f
+
+
+================================================================================
+  ❓ QUAL ARQUIVO ABRIR?
+================================================================================
+
+"Quero TESTAR agora no meu computador"
+    → Abra: PASSO-A-PASSO-UBUNTU.txt
+
+"Quero saber mais sobre o Ubuntu/WSL"
+    → Abra: GUIA-UBUNTU.md
+
+"Quero INSTALAR na VM do HMASP"
+    → Abra: INSTALACAO-VM-HMASP.md
+
+"Quero uma referência rápida"
+    → Abra: LEIA-ME-UBUNTU.txt
+
+
+================================================================================
+  💡 POR QUE UBUNTU?
+================================================================================
+
+✅ Melhor compatibilidade com WhatsApp Web.js
+✅ Chromium/Puppeteer funciona melhor no Linux
+✅ Mesma plataforma da VM de produção do HMASP
+✅ Menos problemas com permissões de arquivo
+✅ Performance superior para Node.js
+✅ Ambiente mais estável para produção
+
+
+================================================================================
+  🆘 PRECISA DE AJUDA?
+================================================================================
+
+1. Verifique os logs:
+   tail -f server.log
+
+2. Veja o passo a passo:
+   PASSO-A-PASSO-UBUNTU.txt
+
+3. Consulte o guia completo:
+   GUIA-UBUNTU.md
+
+
+================================================================================
+  🎬 COMECE AGORA!
+================================================================================
+
+Passo 1: Abra o PowerShell
+Passo 2: Abra o arquivo PASSO-A-PASSO-UBUNTU.txt
+Passo 3: Siga as instruções
+
+Boa sorte! 🚀
+
+
+================================================================================
+Versão: 1.0 | Última atualização: Dezembro 2025
+================================================================================

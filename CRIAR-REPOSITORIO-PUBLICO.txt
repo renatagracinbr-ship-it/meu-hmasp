@@ -1,0 +1,32 @@
+╔══════════════════════════════════════════════════════════════╗
+║          CRIAR REPOSITÓRIO PÚBLICO NO GITHUB                 ║
+╚══════════════════════════════════════════════════════════════╝
+
+PASSO A PASSO:
+
+1) Acesse: https://github.com/new
+
+2) Preencha:
+   - Repository name: HMASP-Chat
+   - Description: Sistema de marcação de consultas via WhatsApp
+   - ✅ Public (IMPORTANTE!)
+   - ❌ NÃO marcar "Add README"
+
+3) Clique "Create repository"
+
+4) No terminal da sua máquina, execute:
+
+   git remote set-url origin https://github.com/SEU-USUARIO/HMASP-Chat.git
+   git push -u origin main
+
+5) Pronto! Repositório público criado!
+
+════════════════════════════════════════════════════════════════
+
+Depois envie para TI usar esta URL:
+
+https://github.com/SEU-USUARIO/HMASP-Chat.git
+
+(Substitua SEU-USUARIO pelo seu usuário do GitHub)
+
+════════════════════════════════════════════════════════════════

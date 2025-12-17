@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HMASP Chat - Bootstrap</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 800px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            text-align: center;
+        }
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+        }
+        .logo {
+            font-size: 5em;
+            margin: 20px 0;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 20px 40px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.5em;
+            cursor: pointer;
+            margin: 20px;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+        .button:hover {
+            background: #45a049;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        .button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            text-align: left;
+            max-height: 400px;
+            overflow-y: auto;
+            display: none;
+            margin-top: 20px;
+        }
+        .log.show { display: block; }
+        .warning {
+            background: rgba(255, 165, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid orange;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🚀</div>
+        <h1>HMASP Chat - Sistema de Bootstrap</h1>
+
+        <div class="info">
+            <h2>📋 O que este sistema faz?</h2>
+            <p style="margin-top: 10px;">
+                Este sistema irá atualizar automaticamente o servidor para a versão mais recente com o frontend azul.
+            </p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ IMPORTANTE:</strong><br>
+            Esta é uma solução temporária para fazer o primeiro deploy.<br>
+            Após a atualização, o sistema funcionará normalmente em:<br>
+            <strong>http://10.12.40.105:3000</strong>
+        </div>
+
+        <button class="button" id="bootstrapBtn" onclick="executarBootstrap()">
+            🔄 Atualizar Sistema Agora
+        </button>
+
+        <div class="log" id="log">
+            <div id="logContent">Aguardando...</div>
+        </div>
+
+        <div class="info" style="margin-top: 30px;">
+            <h3>📞 Suporte</h3>
+            <p>Se houver problemas, envie os logs acima para a equipe de desenvolvimento.</p>
+        </div>
+    </div>
+
+    <script>
+        function addLog(message) {
+            const log = document.getElementById('log');
+            const content = document.getElementById('logContent');
+            log.classList.add('show');
+            const timestamp = new Date().toLocaleTimeString();
+            content.innerHTML += `[${timestamp}] ${message}\n`;
+            log.scrollTop = log.scrollHeight;
+        }
+
+        async function executarBootstrap() {
+            const btn = document.getElementById('bootstrapBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Atualizando...';
+
+            document.getElementById('logContent').innerHTML = '';
+            addLog('🚀 Iniciando processo de bootstrap...');
+            addLog('');
+
+            try {
+                addLog('📡 Chamando endpoint de atualização...');
+
+                const response = await fetch('/api/force-update', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'bootstrap',
+                        timestamp: new Date().toISOString()
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    addLog('✅ ' + data.message);
+
+                    if (data.output) {
+                        addLog('');
+                        addLog('📋 Saída do comando:');
+                        addLog(data.output);
+                    }
+
+                    addLog('');
+                    addLog('✅ Atualização concluída!');
+                    addLog('🔄 O servidor será reiniciado em alguns segundos...');
+                    addLog('');
+                    addLog('⏳ Aguardando reinício...');
+
+                    btn.textContent = '✅ Atualização Concluída!';
+                    btn.style.background = '#4CAF50';
+
+                    // Aguardar 10 segundos e recarregar a página
+                    let countdown = 10;
+                    const interval = setInterval(() => {
+                        countdown--;
+                        btn.textContent = `⏳ Recarregando em ${countdown}s...`;
+                        if (countdown <= 0) {
+                            clearInterval(interval);
+                            addLog('🔄 Recarregando página...');
+                            window.location.href = '/';
+                        }
+                    }, 1000);
+
+                } else {
+                    throw new Error('Resposta não foi OK: ' + response.status);
+                }
+
+            } catch (error) {
+                addLog('');
+                addLog('❌ Erro: ' + error.message);
+                addLog('');
+                addLog('💡 Possível solução:');
+                addLog('   1. O endpoint ainda não está disponível no código atual');
+                addLog('   2. Entre em contato com a TI para executar manualmente:');
+                addLog('      cd /opt/hmasp/hmasp-chat-v2');
+                addLog('      git pull origin main');
+                addLog('      npm install');
+                addLog('      npm run build');
+                addLog('      sudo systemctl restart hmasp-chat');
+
+                btn.disabled = false;
+                btn.textContent = '🔄 Tentar Novamente';
+                btn.style.background = '#f44336';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Instalar AGHUse Backend</title>
+    <style>
+        body { font-family: Arial; max-width: 800px; margin: 50px auto; padding: 20px; }
+        button { padding: 15px 30px; font-size: 16px; cursor: pointer; }
+        .log { background: #000; color: #0f0; padding: 20px; font-family: monospace; max-height: 400px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Instalar Servidor AGHUse (Porta 3001)</h1>
+    <p>Este instalador vai criar um servidor Node.js dedicado para AGHUse rodando na porta 3001</p>
+
+    <button onclick="instalar()">INSTALAR AGORA</button>
+
+    <div class="log" id="log"></div>
+
+    <script>
+        function log(msg) {
+            document.getElementById('log').innerHTML += msg + '\n';
+        }
+
+        async function instalar() {
+            log('[1/4] Criando arquivo server-aghuse.js...');
+
+            const serverCode = `const express = require('express');
+const cors = require('cors');
+const { Pool } = require('pg');
+
+const app = express();
+const PORT = 3001;
+
+app.use(cors());
+app.use(express.json());
+
+const pool = new Pool({
+    host: '10.12.40.219',
+    port: 5432,
+    database: 'dbaghu',
+    user: 'birm_read',
+    password: 'birm@read',
+    max: 10
+});
+
+app.get('/api/aghuse/test-connection', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT NOW() as current_time, version() as version');
+        res.json({ success: true, timestamp: result.rows[0].current_time, version: result.rows[0].version });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.get('/api/aghuse/recent-appointments', async (req, res) => {
+    try {
+        const result = await pool.query(\`SELECT ac.seq AS id FROM agh.aac_consultas ac LIMIT 10\`);
+        res.json({ success: true, count: result.rows.length, appointments: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+    console.log('[AGHUse] Servidor na porta ' + PORT);
+});`;
+
+            const commands = [
+                `cat > /opt/hmasp/hmasp-chat-v2/server-aghuse.js << 'ENDOFFILE'\n${serverCode}\nENDOFFILE`,
+                'sudo systemctl stop hmasp-aghuse 2>/dev/null || true',
+                'sudo rm /etc/systemd/system/hmasp-aghuse.service 2>/dev/null || true',
+                `cat > /tmp/hmasp-aghuse.service << 'EOF'
+[Unit]
+Description=HMASP AGHUse
+After=network.target
+
+[Service]
+Type=simple
+User=sistema-whats
+WorkingDirectory=/opt/hmasp/hmasp-chat-v2
+ExecStart=/usr/bin/node server-aghuse.js
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+EOF`,
+                'sudo cp /tmp/hmasp-aghuse.service /etc/systemd/system/',
+                'sudo systemctl daemon-reload',
+                'sudo systemctl enable hmasp-aghuse',
+                'sudo systemctl start hmasp-aghuse',
+                'sleep 2',
+                'curl http://localhost:3001/api/aghuse/test-connection'
+            ];
+
+            log('');
+            log('📋 Comandos para executar NO SERVIDOR:');
+            log('');
+            log('ssh sistema-whats@10.12.40.105');
+            log('');
+            commands.forEach(cmd => log(cmd));
+            log('');
+            log('✅ Copie e cole os comandos acima no servidor!');
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,36 @@
+╔══════════════════════════════════════════════════════════════╗
+║         🚨 COMANDO URGENTE PARA TI EXECUTAR AMANHÃ           ║
+╚══════════════════════════════════════════════════════════════╝
+
+📌 SITUAÇÃO:
+   - Sistema está funcionando (login OK)
+   - AGHUse NÃO está conectando
+   - Precisa atualizar código do servidor
+
+🔧 EXECUTAR ESTE COMANDO NO SERVIDOR 10.12.40.105:
+
+cd /opt/hmasp/hmasp-chat-v2
+git pull origin main
+npm install
+npm run build
+sudo systemctl restart hmasp-chat
+
+
+✅ DEPOIS DE EXECUTAR:
+   - AGHUse vai conectar automaticamente
+   - Usuário pode desligar computador local
+   - Tudo funcionará independente
+
+
+💡 OU ALTERNATIVAMENTE:
+
+Se preferir SSH da máquina local:
+
+ssh sistema-whats@10.12.40.105 "cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install && npm run build && sudo systemctl restart hmasp-chat"
+
+
+⏱️ TEMPO ESTIMADO: 2-3 minutos
+🔒 RISCO: BAIXO (só atualiza código)
+
+
+════════════════════════════════════════════════════════════════

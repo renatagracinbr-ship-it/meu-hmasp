@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Login - HMASP Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #0cb7f2; }
+        h2 { color: #333; margin-top: 0; }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary { background: #0cb7f2; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            border-left: 4px solid #0cb7f2;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Sistema de Autenticação</h1>
+
+    <div class="test-section">
+        <h2>1. Verificar Backend</h2>
+        <button class="btn-primary" onclick="testBackend()">Testar Conexão Backend</button>
+        <div id="backend-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>2. Testar Auto-Login</h2>
+        <button class="btn-primary" onclick="testAutoLogin()">Verificar Auto-Login</button>
+        <div id="autologin-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>3. Testar Login Manual</h2>
+        <div>
+            <input type="text" id="username" placeholder="Usuário" value="majrenata" style="padding: 8px; margin: 5px;">
+            <input type="password" id="password" placeholder="Senha" value="majrenata" style="padding: 8px; margin: 5px;">
+            <button class="btn-success" onclick="testLogin()">Fazer Login</button>
+        </div>
+        <div id="login-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>4. Verificar Sessão Atual</h2>
+        <button class="btn-primary" onclick="checkSession()">Ver Sessão</button>
+        <button class="btn-danger" onclick="clearSession()">Limpar Sessão</button>
+        <div id="session-result"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>5. Ir para Aplicação</h2>
+        <button class="btn-success" onclick="window.location.href='http://localhost:5173'">
+            Abrir HMASP Chat
+        </button>
+    </div>
+
+    <script>
+        const BACKEND = 'http://localhost:3000';
+
+        function showResult(elementId, message, type = 'info') {
+            const el = document.getElementById(elementId);
+            el.innerHTML = `<div class="result ${type}">${message}</div>`;
+        }
+
+        async function testBackend() {
+            try {
+                const response = await fetch(`${BACKEND}/api/status`);
+                const data = await response.json();
+                showResult('backend-result', `
+                    <strong>✅ Backend Conectado!</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `, 'success');
+            } catch (error) {
+                showResult('backend-result', `
+                    <strong>❌ Erro ao conectar no backend</strong><br>
+                    ${error.message}<br>
+                    Verifique se o servidor está rodando em ${BACKEND}
+                `, 'error');
+            }
+        }
+
+        async function testAutoLogin() {
+            try {
+                const response = await fetch(`${BACKEND}/api/auth/auto-login`);
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult('autologin-result', `
+                        <strong>✅ Auto-Login Configurado!</strong><br>
+                        Usuário: ${data.user.username} (${data.user.name})<br>
+                        Perfil: ${data.user.role}<br>
+                        Token gerado: ${data.token.substring(0, 20)}...<br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, 'success');
+                } else {
+                    showResult('autologin-result', `
+                        <strong>ℹ️ Auto-Login não disponível</strong><br>
+                        Use login manual
+                    `, 'info');
+                }
+            } catch (error) {
+                showResult('autologin-result', `
+                    <strong>❌ Erro ao verificar auto-login</strong><br>
+                    ${error.message}
+                `, 'error');
+            }
+        }
+
+        async function testLogin() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${BACKEND}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Salva no localStorage
+                    localStorage.setItem('hmasp_auth_session', JSON.stringify({
+                        user: data.user,
+                        token: data.token,
+                        savedAt: new Date().toISOString()
+                    }));
+
+                    showResult('login-result', `
+                        <strong>✅ Login bem-sucedido!</strong><br>
+                        Usuário: ${data.user.username} (${data.user.name})<br>
+                        Perfil: ${data.user.role}<br>
+                        Token: ${data.token.substring(0, 30)}...<br>
+                        <strong>Sessão salva no localStorage!</strong><br>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `, 'success');
+                } else {
+                    showResult('login-result', `
+                        <strong>❌ Login falhou</strong><br>
+                        ${data.error}
+                    `, 'error');
+                }
+            } catch (error) {
+                showResult('login-result', `
+                    <strong>❌ Erro ao fazer login</strong><br>
+                    ${error.message}
+                `, 'error');
+            }
+        }
+
+        function checkSession() {
+            const session = localStorage.getItem('hmasp_auth_session');
+
+            if (session) {
+                const data = JSON.parse(session);
+                showResult('session-result', `
+                    <strong>✅ Sessão encontrada no localStorage!</strong><br>
+                    Usuário: ${data.user.username} (${data.user.name})<br>
+                    Perfil: ${data.user.role}<br>
+                    Salvo em: ${new Date(data.savedAt).toLocaleString('pt-BR')}<br>
+                    Token: ${data.token.substring(0, 30)}...<br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `, 'success');
+            } else {
+                showResult('session-result', `
+                    <strong>ℹ️ Nenhuma sessão salva</strong><br>
+                    Faça login primeiro
+                `, 'info');
+            }
+        }
+
+        function clearSession() {
+            localStorage.removeItem('hmasp_auth_session');
+            sessionStorage.clear();
+            showResult('session-result', `
+                <strong>✅ Sessão removida!</strong><br>
+                localStorage e sessionStorage limpos
+            `, 'success');
+        }
+
+        // Auto-executa testes básicos ao carregar
+        window.onload = () => {
+            console.log('Página de teste carregada');
+            testBackend();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "HMASP AGHUse Fix",
+  "version": "1.0",
+  "description": "Corrige porta AGHUse de 3001 para 3000",
+  "permissions": [],
+  "host_permissions": [
+    "http://10.12.40.105:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://10.12.40.105:3000/*"],
+      "js": ["fix-aghuse.js"],
+      "run_at": "document_start"
+    }
+  ]
+}

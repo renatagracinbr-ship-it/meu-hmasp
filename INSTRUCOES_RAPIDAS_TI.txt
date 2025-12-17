@@ -1,0 +1,146 @@
+═══════════════════════════════════════════════════════════════
+    🚀 INSTRUÇÕES RÁPIDAS - TI HMASP
+═══════════════════════════════════════════════════════════════
+
+⚠️  IMPORTANTE: Leia isso PRIMEIRO!
+
+O sistema tem 2 modos:
+  1. Desenvolvimento (3 servidores)
+  2. Produção (1 servidor) ⭐ RECOMENDADO
+
+═══════════════════════════════════════════════════════════════
+📦 OPÇÃO 1: PRODUÇÃO (SIMPLES) ⭐ RECOMENDADO
+═══════════════════════════════════════════════════════════════
+
+Use esta opção para rodar o sistema completo:
+
+1. Abrir terminal/cmd na pasta do projeto
+
+2. Instalar dependências (apenas primeira vez):
+   npm install
+
+3. Executar:
+   INICIAR_PRODUCAO.bat
+
+   OU manualmente:
+   node server-producao.js
+
+4. Acessar no navegador:
+   http://localhost:3000
+
+5. PRONTO! Você verá a tela de LOGIN do HMASP Chat
+   com Tab Master funcionando!
+
+───────────────────────────────────────────────────────────────
+🎯 O QUE VOCÊ DEVE VER:
+───────────────────────────────────────────────────────────────
+
+✅ Tela de Login
+✅ Após login: Interface com abas (Chat, Confirmação, etc.)
+✅ Indicador Tab Master no header (👑 ou 🔄)
+✅ Menu moderno com ícones
+
+❌ NÃO é a tela de QR Code do WhatsApp!
+   (Essa tela é só para configuração)
+
+───────────────────────────────────────────────────────────────
+📸 SCREENSHOTS:
+───────────────────────────────────────────────────────────────
+
+CORRETO:
+  - Tela azul com logos HMASP
+  - Formulário de login
+  - Título "HMASP Chat - Marcação de Consultas"
+
+INCORRETO (NÃO é esta tela):
+  - Tela roxa/branca
+  - QR Code do WhatsApp
+  - "Aguardando Conexão"
+
+═══════════════════════════════════════════════════════════════
+📦 OPÇÃO 2: DESENVOLVIMENTO (COMPLETO)
+═══════════════════════════════════════════════════════════════
+
+Use apenas se for desenvolver/modificar o sistema:
+
+1. Executar:
+   INICIAR.bat
+
+2. Acessar:
+   http://localhost:5173  (Interface principal)
+   http://localhost:3000  (Configuração WhatsApp)
+   http://localhost:3001  (API AGHUse)
+
+───────────────────────────────────────────────────────────────
+🔧 ARQUITETURA DO SISTEMA:
+───────────────────────────────────────────────────────────────
+
+PRODUÇÃO (server-producao.js):
+  ┌─────────────────────────────────┐
+  │  Porta 3000 (TUDO EM UM)        │
+  │  ├─ Interface HTML/CSS/JS       │
+  │  ├─ API de Login                │
+  │  ├─ API de Database             │
+  │  └─ Sistema Tab Master ⭐       │
+  └─────────────────────────────────┘
+
+DESENVOLVIMENTO (INICIAR.bat):
+  ┌─────────────────────────────────┐
+  │  Porta 5173 - Frontend (Vite)   │
+  │  Porta 3000 - WhatsApp Server   │
+  │  Porta 3001 - AGHUse API        │
+  └─────────────────────────────────┘
+
+═══════════════════════════════════════════════════════════════
+🐛 PROBLEMAS COMUNS:
+═══════════════════════════════════════════════════════════════
+
+PROBLEMA: Vejo tela de QR Code do WhatsApp
+SOLUÇÃO:  Você está acessando a URL errada!
+          Use: http://localhost:3000 (servidor de produção)
+          OU:  http://localhost:5173 (modo desenvolvimento)
+
+PROBLEMA: Erro "Cannot GET /"
+SOLUÇÃO:  Servidor não está rodando
+          Execute: INICIAR_PRODUCAO.bat
+
+PROBLEMA: Porta 3000 em uso
+SOLUÇÃO:  Feche outros servidores
+          OU execute: taskkill /F /IM node.exe
+          Depois rode novamente
+
+PROBLEMA: "npm não é reconhecido"
+SOLUÇÃO:  Instale Node.js primeiro
+          Download: https://nodejs.org
+
+═══════════════════════════════════════════════════════════════
+✅ CHECKLIST DE INSTALAÇÃO:
+═══════════════════════════════════════════════════════════════
+
+□ Node.js instalado (v18+)
+□ Dependências instaladas (npm install)
+□ Servidor iniciado (INICIAR_PRODUCAO.bat)
+□ Navegador aberto em http://localhost:3000
+□ Vendo tela de LOGIN (não QR Code!)
+□ Sistema Tab Master visível após login
+
+═══════════════════════════════════════════════════════════════
+📞 AINDA COM DÚVIDAS?
+═══════════════════════════════════════════════════════════════
+
+Leia os documentos completos:
+  1. LEIA-ME_PRIMEIRO.txt
+  2. ENVIO_TI_HMASP.md
+  3. SISTEMA_TAB_MASTER.md
+
+Ou entre em contato com o desenvolvedor.
+
+═══════════════════════════════════════════════════════════════
+🎉 VERSÃO:
+═══════════════════════════════════════════════════════════════
+
+HMASP Chat v2.0 - Sistema Tab Master
+Data: 02/12/2025
+Status: Pronto para Produção ✅
+
+═══════════════════════════════════════════════════════════════

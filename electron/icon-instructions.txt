@@ -1,0 +1,26 @@
+ÍCONE DO APLICATIVO
+===================
+
+Para usar o aplicativo, você precisa de um ícone icon.png (256x256) nesta pasta.
+
+OPÇÃO 1 - Criar simples online:
+1. Acesse: https://www.canva.com/
+2. Crie um design 256x256px
+3. Adicione um símbolo médico (cruz, estetoscópio, etc.)
+4. Adicione as letras "HMASP"
+5. Baixe como PNG
+6. Salve aqui como "icon.png"
+
+OPÇÃO 2 - Usar logo existente:
+Se você tiver o logo do HMASP, apenas redimensione para 256x256px e salve aqui como "icon.png"
+
+OPÇÃO 3 - Criar com IA:
+Prompt sugerido: "Hospital logo with blue medical cross and letters HMASP, simple, flat design, white background, 256x256"
+
+IMPORTANTE:
+- Nome do arquivo: icon.png
+- Tamanho: 256x256 pixels
+- Formato: PNG com fundo transparente (preferencialmente)
+- Localização: electron/icon.png
+
+Depois de adicionar o ícone, você pode executar o app normalmente.

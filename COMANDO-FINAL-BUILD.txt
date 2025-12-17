@@ -1,0 +1,33 @@
+╔══════════════════════════════════════════════════════════════╗
+║         COMANDO FINAL - FAZER BUILD NOVO FRONTEND            ║
+╚══════════════════════════════════════════════════════════════╝
+
+PROBLEMA:
+- Frontend compilado tem porta 3001 hardcoded
+- Código fonte já está correto (porta 3000)
+- Precisa rebuild
+
+SOLUÇÃO:
+
+Execute NO SERVIDOR:
+
+cd /opt/hmasp/hmasp-chat-v2
+git pull origin main
+npm install
+npm run build
+sudo systemctl restart hmasp-chat
+
+TEMPO: 2-3 minutos
+
+RESULTADO:
+✅ Frontend usa porta 3000
+✅ AGHUse conecta imediatamente
+✅ Sistema 100% funcional
+
+════════════════════════════════════════════════════════════════
+
+OU via SSH da sua máquina:
+
+ssh sistema-whats@10.12.40.105 "cd /opt/hmasp/hmasp-chat-v2 && git pull origin main && npm install && npm run build && sudo systemctl restart hmasp-chat"
+
+════════════════════════════════════════════════════════════════

@@ -1,0 +1,93 @@
+╔══════════════════════════════════════════════════════════════╗
+║         INSTRUÇÕES URGENTES PARA TI DO HMASP                 ║
+║              ATUALIZAR FRONTEND DO SISTEMA                   ║
+╚══════════════════════════════════════════════════════════════╝
+
+O servidor está com CÓDIGO ANTIGO.
+Precisa executar estes 4 comandos:
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 1: Conectar ao servidor                                │
+└──────────────────────────────────────────────────────────────┘
+
+ssh sistema-whats@10.12.40.105
+Senha: Sistema@whats
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 2: Ir para o diretório                                 │
+└──────────────────────────────────────────────────────────────┘
+
+cd /opt/hmasp/hmasp-chat-v2
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 3: Parar serviço                                       │
+└──────────────────────────────────────────────────────────────┘
+
+sudo systemctl stop hmasp-chat
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 4: Atualizar código                                    │
+└──────────────────────────────────────────────────────────────┘
+
+git pull origin main
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 5: Iniciar serviço                                     │
+└──────────────────────────────────────────────────────────────┘
+
+sudo systemctl start hmasp-chat
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 6: Aguardar 5 segundos                                 │
+└──────────────────────────────────────────────────────────────┘
+
+sleep 5
+
+┌──────────────────────────────────────────────────────────────┐
+│ PASSO 7: Verificar status                                    │
+└──────────────────────────────────────────────────────────────┘
+
+sudo systemctl status hmasp-chat
+
+╔══════════════════════════════════════════════════════════════╗
+║                    RESULTADO ESPERADO                         ║
+╚══════════════════════════════════════════════════════════════╝
+
+Após executar, acessar no navegador:
+
+✅ Frontend principal (tela azul):
+   http://10.12.40.105:3000
+
+✅ Diagnóstico WhatsApp:
+   http://10.12.40.105:3000/api/dashboard
+
+╔══════════════════════════════════════════════════════════════╗
+║              OU EXECUTE TUDO DE UMA VEZ:                      ║
+╚══════════════════════════════════════════════════════════════╝
+
+cd /opt/hmasp/hmasp-chat-v2 && sudo systemctl stop hmasp-chat && git pull origin main && sudo systemctl start hmasp-chat && sleep 5 && sudo systemctl status hmasp-chat
+
+╔══════════════════════════════════════════════════════════════╗
+║                    SE DER ERRO NO GIT:                        ║
+╚══════════════════════════════════════════════════════════════╝
+
+cd /opt/hmasp/hmasp-chat-v2
+git reset --hard
+git pull origin main
+sudo systemctl restart hmasp-chat
+
+╔══════════════════════════════════════════════════════════════╗
+║                    TESTE RÁPIDO:                              ║
+╚══════════════════════════════════════════════════════════════╝
+
+No próprio servidor, execute:
+
+curl http://localhost:3000/ | grep "Hospital Militar"
+
+Se aparecer "Hospital Militar", está funcionando!
+
+═══════════════════════════════════════════════════════════════
+
+COMMIT ATUAL: e0e0640
+DATA: 03/12/2024
+VERSÃO: 2.0 Unificado com Frontend Azul

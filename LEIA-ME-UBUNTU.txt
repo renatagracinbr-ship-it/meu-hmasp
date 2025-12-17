@@ -1,0 +1,108 @@
+================================================================================
+  HMASP Chat - Como Executar no Ubuntu/WSL
+================================================================================
+
+🚀 INÍCIO RÁPIDO
+================================================================================
+
+OPÇÃO 1: Usando scripts Windows (clique duplo)
+-----------------------------------------------
+1. Clique duas vezes em: iniciar-wsl.bat
+2. Escolha o modo de execução (foreground ou background)
+3. Acesse: http://localhost:3000
+
+Para parar:
+- Clique duas vezes em: parar-wsl.bat
+
+
+OPÇÃO 2: Usando terminal Ubuntu/WSL
+------------------------------------
+1. Abra o Ubuntu (menu Iniciar ou digite 'wsl' no CMD)
+
+2. Navegue até o projeto:
+   cd "/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas"
+
+3. Execute o setup (PRIMEIRA VEZ):
+   ./setup-ubuntu.sh
+
+4. Inicie o servidor:
+   ./start-ubuntu.sh
+
+5. Acesse: http://localhost:3000
+
+
+📋 GUIA COMPLETO
+================================================================================
+
+Veja instruções detalhadas em: GUIA-UBUNTU.md
+
+
+🔧 COMANDOS ÚTEIS
+================================================================================
+
+Dentro do Ubuntu/WSL:
+
+Iniciar servidor:          ./start-ubuntu.sh
+Parar servidor:            ./stop-ubuntu.sh
+Ver logs:                  tail -f server.log
+Status do servidor:        ps aux | grep "node server.js"
+
+
+🐛 PROBLEMAS COMUNS
+================================================================================
+
+Problema: "Permission denied"
+Solução:  chmod +x *.sh
+
+Problema: "WSL não encontrado"
+Solução:  No PowerShell (Admin): wsl --install
+
+Problema: "Node.js não instalado"
+Solução:  Execute primeiro: ./setup-ubuntu.sh
+
+Problema: "Porta em uso"
+Solução:  ./stop-ubuntu.sh (para parar servidor anterior)
+
+
+📁 ARQUIVOS IMPORTANTES
+================================================================================
+
+setup-ubuntu.sh     - Instala todas as dependências (execute PRIMEIRO)
+start-ubuntu.sh     - Inicia o servidor no Ubuntu
+stop-ubuntu.sh      - Para o servidor
+
+iniciar-wsl.bat     - Inicia do Windows (clique duplo)
+parar-wsl.bat       - Para do Windows (clique duplo)
+
+GUIA-UBUNTU.md      - Guia completo e detalhado
+
+
+💡 DICAS
+================================================================================
+
+1. O servidor rodando no Ubuntu pode ser acessado do Windows em:
+   http://localhost:3000
+
+2. Para manter o servidor rodando em background:
+   Escolha opção 2 quando executar ./start-ubuntu.sh
+
+3. Os arquivos do Windows ficam em:
+   /mnt/c/Users/user/...
+
+4. Para ver o IP do WSL (se localhost não funcionar):
+   ip addr show eth0 | grep inet
+
+
+🎯 VANTAGENS DE USAR NO UBUNTU/WSL
+================================================================================
+
+✅ Melhor compatibilidade com ferramentas Linux
+✅ Performance superior para Node.js
+✅ Ambiente mais próximo do servidor de produção
+✅ Menos problemas com permissões de arquivo
+✅ Chromium/Puppeteer funciona melhor
+
+
+================================================================================
+Versão: 1.0 | Última atualização: Dezembro 2025
+================================================================================

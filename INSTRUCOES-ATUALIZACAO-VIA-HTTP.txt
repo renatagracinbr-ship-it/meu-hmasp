@@ -1,0 +1,82 @@
+╔══════════════════════════════════════════════════════════════╗
+║         ATUALIZAÇÃO REMOTA VIA HTTP - SOLUÇÃO DEFINITIVA     ║
+╚══════════════════════════════════════════════════════════════╝
+
+PROBLEMA: Não conseguimos acesso SSH, mas HTTP funciona!
+
+SOLUÇÃO: Criar um servidor temporário que atualiza via HTTP
+
+════════════════════════════════════════════════════════════════
+
+OPÇÃO 1: TI EXECUTAR NO SERVIDOR (RECOMENDADO - 10 segundos)
+════════════════════════════════════════════════════════════════
+
+A TI precisa executar APENAS 4 COMANDOS no servidor:
+
+ssh sistema-whats@10.12.40.105
+# Senha: Sistema@whats
+
+cd /opt/hmasp/hmasp-chat-v2
+sudo systemctl stop hmasp-chat
+git pull origin main
+sudo systemctl start hmasp-chat
+
+PRONTO! Sistema atualizado!
+
+════════════════════════════════════════════════════════════════
+
+OPÇÃO 2: ATUALIZAÇÃO VIA HTTP (SE NÃO TIVER ACESSO SSH)
+════════════════════════════════════════════════════════════════
+
+PASSO 1: Copiar arquivo para o servidor
+-----------------------------------------
+Copie o arquivo 'update-endpoint-temp.js' para o servidor em:
+/opt/hmasp/hmasp-chat-v2/
+
+PASSO 2: No servidor, executar o script temporário
+---------------------------------------------------
+cd /opt/hmasp/hmasp-chat-v2
+node update-endpoint-temp.js
+
+(Deixe rodando - ele criará um servidor na porta 3001)
+
+PASSO 3: Da sua máquina, chamar o endpoint
+-------------------------------------------
+curl -X POST http://10.12.40.105:3001/update
+
+PASSO 4: Reiniciar serviço principal
+-------------------------------------
+No servidor:
+sudo systemctl restart hmasp-chat
+
+════════════════════════════════════════════════════════════════
+
+VERIFICAÇÃO FINAL
+════════════════════════════════════════════════════════════════
+
+Acesse no navegador:
+✅ http://10.12.40.105:3000  → Deve mostrar tela AZUL com logos HMASP
+
+Se aparecer a tela azul, SUCESSO! ✅
+
+════════════════════════════════════════════════════════════════
+
+ENDEREÇOS DO SISTEMA:
+════════════════════════════════════════════════════════════════
+
+Frontend Principal (tela azul):
+  http://10.12.40.105:3000
+
+Diagnóstico WhatsApp:
+  http://10.12.40.105:3000/api/dashboard
+
+Atualização Remota (após primeira atualização):
+  curl -X POST http://10.12.40.105:3000/api/admin/update
+
+════════════════════════════════════════════════════════════════
+
+COMMIT ATUAL NO GITHUB: ca48773
+DATA: 03/12/2024
+VERSÃO: 2.0 com Endpoint de Atualização Remota
+
+════════════════════════════════════════════════════════════════
