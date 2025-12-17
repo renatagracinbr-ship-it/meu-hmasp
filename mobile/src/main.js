@@ -69,7 +69,11 @@ const elements = {
     // Modal
     addDependentModal: document.getElementById('add-dependent-modal'),
     dependentProntuario: document.getElementById('dependent-prontuario'),
-    dependentRelationship: document.getElementById('dependent-relationship')
+    dependentRelationship: document.getElementById('dependent-relationship'),
+
+    // Menu
+    menuBtn: document.getElementById('menu-btn'),
+    dropdownMenu: document.getElementById('dropdown-menu')
 };
 
 /**
@@ -90,10 +94,33 @@ async function init() {
     // Configura modais
     setupModals();
 
+    // Configura menu dropdown
+    setupMenu();
+
     // Verifica autenticacao
     await checkAuth();
 
     console.log('[MeuHMASP] Aplicacao iniciada');
+}
+
+/**
+ * Configura menu dropdown
+ */
+function setupMenu() {
+    if (elements.menuBtn && elements.dropdownMenu) {
+        // Toggle menu ao clicar no botao
+        elements.menuBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.dropdownMenu.classList.toggle('show');
+        });
+
+        // Fechar menu ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!elements.dropdownMenu.contains(e.target) && !elements.menuBtn.contains(e.target)) {
+                elements.dropdownMenu.classList.remove('show');
+            }
+        });
+    }
 }
 
 /**

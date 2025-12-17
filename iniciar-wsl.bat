@@ -1,11 +1,11 @@
 @echo off
 REM ============================================================================
-REM Script Windows para iniciar o HMASP Chat no Ubuntu/WSL
+REM Script Windows para iniciar o Meu HMASP no Ubuntu/WSL
 REM Execute este arquivo clicando duas vezes nele
 REM ============================================================================
 
 echo =========================================
-echo   HMASP Chat - Iniciar no Ubuntu/WSL
+echo   Meu HMASP - Iniciar no Ubuntu/WSL
 echo =========================================
 echo.
 
@@ -28,7 +28,7 @@ REM Navegar para o diretório e executar o script de start
 echo Iniciando servidor no Ubuntu...
 echo.
 
-wsl bash -c "cd '/mnt/c/Users/user/Projetos VS Code/HMASPChat - Marcação de Consultas' && chmod +x start-ubuntu.sh && ./start-ubuntu.sh"
+wsl bash -c "cd '/mnt/c/Users/user/Projetos VS Code/Meu HMASP' && chmod +x start-ubuntu.sh && ./start-ubuntu.sh"
 
 echo.
 echo =========================================

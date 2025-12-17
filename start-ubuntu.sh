@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ###############################################################################
-# Script de Inicialização - HMASP Chat no Ubuntu/WSL
+# Script de Inicialização - Meu HMASP no Ubuntu/WSL
 # Execute com: ./start-ubuntu.sh
 ###############################################################################
 
@@ -13,7 +13,7 @@ BLUE='\033[0;34m'
 NC='\033[0m'
 
 echo -e "${BLUE}=========================================${NC}"
-echo -e "${BLUE}  HMASP Chat - Ubuntu/WSL${NC}"
+echo -e "${BLUE}  Meu HMASP - Ubuntu/WSL${NC}"
 echo -e "${BLUE}=========================================${NC}"
 echo ""
 
