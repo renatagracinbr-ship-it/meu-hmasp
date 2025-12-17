@@ -2,10 +2,107 @@
  * Meu HMASP - App Mobile (Paciente)
  *
  * Aplicativo para pacientes acessarem suas consultas
- * e se comunicarem com a Central de Regulacao
+ * e se comunicarem com a Central de Atendimento
  */
 
+// ============================================
+// PWA - Service Worker e Instalacao
+// ============================================
+
+let deferredPrompt = null;
+
+// Registra Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js');
+            console.log('[PWA] Service Worker registrado:', registration.scope);
+        } catch (error) {
+            console.log('[PWA] Erro ao registrar Service Worker:', error);
+        }
+    });
+}
+
+// Captura o evento de instalacao
+window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('[PWA] beforeinstallprompt disparado');
+    e.preventDefault();
+    deferredPrompt = e;
+
+    // Mostra banner de instalacao
+    showInstallBanner();
+});
+
+// Verifica se ja esta instalado
+window.addEventListener('appinstalled', () => {
+    console.log('[PWA] App instalado!');
+    deferredPrompt = null;
+    hideInstallBanner();
+});
+
+// Mostra banner de instalacao
+function showInstallBanner() {
+    const banner = document.getElementById('install-banner');
+    if (banner && deferredPrompt) {
+        banner.style.display = 'block';
+
+        // Botao de instalar
+        const installBtn = document.getElementById('install-btn');
+        if (installBtn) {
+            installBtn.addEventListener('click', handleInstallClick);
+        }
+
+        // Botao de fechar
+        const closeBtn = document.getElementById('install-close');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => {
+                hideInstallBanner();
+                // Salva que o usuario fechou o banner
+                localStorage.setItem('meuHmasp_installDismissed', Date.now().toString());
+            });
+        }
+    }
+}
+
+// Esconde banner de instalacao
+function hideInstallBanner() {
+    const banner = document.getElementById('install-banner');
+    if (banner) {
+        banner.style.display = 'none';
+    }
+}
+
+// Trata clique no botao de instalar
+async function handleInstallClick() {
+    if (!deferredPrompt) return;
+
+    // Mostra prompt de instalacao
+    deferredPrompt.prompt();
+
+    // Espera resposta do usuario
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log('[PWA] Resposta do usuario:', outcome);
+
+    // Limpa o prompt
+    deferredPrompt = null;
+    hideInstallBanner();
+}
+
+// Verifica se deve mostrar o banner (se nao foi dispensado recentemente)
+function shouldShowInstallBanner() {
+    const dismissed = localStorage.getItem('meuHmasp_installDismissed');
+    if (!dismissed) return true;
+
+    // Mostra novamente apos 7 dias
+    const dismissedTime = parseInt(dismissed);
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    return Date.now() - dismissedTime > sevenDays;
+}
+
+// ============================================
 // Configuracao da API
+// ============================================
+
 const API_BASE = window.location.hostname === 'localhost'
     ? 'http://localhost:3000'
     : 'https://seu-backend.hmasp.com.br'; // Sera configurado para a VM do HMASP

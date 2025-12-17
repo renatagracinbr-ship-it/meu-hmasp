@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "http-proxy-middleware": "^3.0.5",
+    "sharp": "^0.34.5",
     "vite": "^5.4.21"
   }
 }

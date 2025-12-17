@@ -162,7 +162,8 @@
       "Bash(firebase:*)",
       "Bash(if not exist \"public\\icons\" mkdir \"public\\icons\")",
       "Bash(if not exist \"public\\assets\" mkdir \"public\\assets\")",
-      "Bash(if not exist \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\assets\" mkdir \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\assets\")"
+      "Bash(if not exist \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\assets\" mkdir \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\assets\")",
+      "Bash(if not exist \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\icons\" mkdir \"c:\\Users\\user\\Projetos VS Code\\Meu HMASP\\mobile\\public\\icons\")"
     ],
     "deny": [],
     "ask": []

@@ -1072,3 +1072,91 @@ html, body {
         transform: rotate(360deg);
     }
 }
+
+/* ============================================
+   Banner de Instalacao PWA
+   ============================================ */
+
+.install-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.install-banner-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+.install-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    flex-shrink: 0;
+}
+
+.install-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.install-text strong {
+    font-size: 14px;
+    color: var(--gray-800);
+}
+
+.install-text span {
+    font-size: 12px;
+    color: var(--gray-500);
+}
+
+.install-btn {
+    background: var(--primary);
+    color: var(--white);
+    border: none;
+    padding: 10px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+    white-space: nowrap;
+}
+
+.install-btn:hover {
+    background: var(--primary-dark);
+}
+
+.install-close {
+    background: none;
+    border: none;
+    color: var(--gray-400);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+}
+
+.install-close:hover {
+    color: var(--gray-600);
+}
