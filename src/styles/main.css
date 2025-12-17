@@ -1988,3 +1988,163 @@ body {
         right: -100%;
     }
 }
+
+/* ============================================================
+   CHAT PROPRIO - Estilos Especificos
+   ============================================================ */
+
+/* Avatar com iniciais */
+.conversation-avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-blue), #0099d6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: uppercase;
+}
+
+.avatar-paciente {
+    background: linear-gradient(135deg, var(--primary-blue), #0099d6);
+}
+
+.avatar-paciente span {
+    color: white;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Conversa nao lida */
+.conversation-item.unread {
+    background-color: rgba(12, 183, 242, 0.08);
+}
+
+.conversation-item.unread .conversation-name {
+    font-weight: 700;
+}
+
+/* Badge de nao lidas */
+.unread-badge {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+/* Info da conversa */
+.conversation-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.conversation-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.conversation-name {
+    font-weight: 500;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.conversation-time {
+    font-size: 0.75rem;
+    color: var(--text-light);
+    white-space: nowrap;
+    margin-left: 8px;
+}
+
+.conversation-preview {
+    display: flex;
+    align-items: center;
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
+.preview-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Mensagem sem conversas */
+.no-conversations {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.no-conversations p {
+    margin: 0.5rem 0;
+}
+
+.no-conversations .hint {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Mensagem sem mensagens */
+.no-messages {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-light);
+}
+
+.no-messages p {
+    margin: 0.5rem 0;
+}
+
+.no-messages .hint {
+    font-size: 0.85rem;
+    opacity: 0.8;
+}
+
+/* Mensagens do chat */
+.message {
+    padding: 0.5rem 1rem;
+    max-width: 70%;
+    margin-bottom: 0.5rem;
+    clear: both;
+}
+
+.message-sent {
+    float: right;
+    background-color: #dcf8c6;
+    border-radius: 8px 8px 0 8px;
+    margin-left: auto;
+}
+
+.message-received {
+    float: left;
+    background-color: white;
+    border-radius: 8px 8px 8px 0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.message-content p {
+    margin: 0 0 4px 0;
+    word-wrap: break-word;
+}
+
+.message-time {
+    font-size: 0.7rem;
+    color: var(--text-light);
+    float: right;
+    margin-top: 4px;
+}

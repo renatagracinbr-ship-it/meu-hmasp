@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
     root: '.',
+    base: '/',
     publicDir: 'public',
     build: {
         outDir: 'dist',
@@ -12,6 +13,13 @@ export default defineConfig({
     },
     server: {
         port: 5173,
-        open: true
+        host: true,
+        open: true,
+        proxy: {
+            '/api': {
+                target: 'http://localhost:3000',
+                changeOrigin: true
+            }
+        }
     }
 });

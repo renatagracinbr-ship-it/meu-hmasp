@@ -79,25 +79,24 @@
 
         <!-- Tab Contents -->
         <main class="content">
-            <!-- Aba 1: Chat -->
+            <!-- Aba 1: Chat Proprio (Meu HMASP) -->
             <div id="chat-tab" class="tab-content active">
                 <div class="chat-container">
-                    <!-- WhatsApp Connection Status -->
-                    <div class="whatsapp-status" id="whatsapp-status">
+                    <!-- Status de Conexao (oculto - chat proprio sempre conectado) -->
+                    <div class="whatsapp-status" id="whatsapp-status" style="display: none;">
                         <div class="status-disconnected">
-                            <h3>WhatsApp não conectado</h3>
-                            <p>Escaneie o QR Code para conectar</p>
+                            <h3>Carregando chat...</h3>
                             <div id="qr-code"></div>
                             <button id="reconnect-btn" style="display: none;">Reconectar</button>
                         </div>
                     </div>
 
-                    <!-- Chat Interface (visible when connected) -->
-                    <div class="chat-interface" id="chat-interface" style="display: none;">
+                    <!-- Chat Interface -->
+                    <div class="chat-interface" id="chat-interface" style="display: flex;">
                         <!-- Sidebar with conversations -->
                         <aside class="chat-sidebar">
                             <div class="sidebar-header">
-                                <h3>Conversas</h3>
+                                <h3>Conversas com Pacientes</h3>
                                 <div class="sidebar-actions">
                                     <button id="new-chat-btn" title="Nova conversa">
                                         <svg viewBox="0 0 24 24" width="24" height="24">
@@ -116,7 +115,7 @@
                                 </div>
                             </div>
                             <div class="search-box" id="search-box" style="display: none;">
-                                <input type="text" id="search-input" placeholder="Pesquisar conversas...">
+                                <input type="text" id="search-input" placeholder="Buscar paciente...">
                             </div>
                             <div class="conversations-list" id="conversations-list">
                                 <!-- Conversations will be loaded here -->
@@ -131,8 +130,8 @@
                                     <button class="modal-close" id="close-new-chat">&times;</button>
                                 </div>
                                 <div class="modal-body">
-                                    <p>Digite o DDD + número (ex: 11999887766)</p>
-                                    <input type="tel" id="new-chat-number" placeholder="11999887766" maxlength="11">
+                                    <p>Digite o prontuario ou identificador do paciente</p>
+                                    <input type="text" id="new-chat-number" placeholder="Prontuario do paciente" maxlength="20">
                                 </div>
                                 <div class="modal-footer">
                                     <button class="btn-cancel" id="cancel-new-chat">Cancelar</button>
@@ -145,26 +144,26 @@
                         <section class="chat-main">
                             <div class="no-chat-selected" id="no-chat-selected">
                                 <div class="no-chat-content">
-                                    <h2>HMASP Chat</h2>
-                                    <p>Selecione uma conversa ou inicie um novo chat</p>
+                                    <h2>Meu HMASP - Chat</h2>
+                                    <p>Selecione uma conversa ou inicie um novo chat com um paciente</p>
                                 </div>
                             </div>
 
                             <div class="chat-active" id="chat-active" style="display: none;">
                                 <!-- Chat Header -->
                                 <div class="chat-header">
-                                    <!-- Esquerda: Info do contato -->
+                                    <!-- Esquerda: Info do paciente -->
                                     <div class="chat-header-info">
                                         <div class="contact-avatar" id="contact-avatar"></div>
                                         <div class="contact-info">
-                                            <h3 id="contact-name">Nome do Contato</h3>
-                                            <span id="contact-status" class="contact-status">online</span>
+                                            <h3 id="contact-name">Nome do Paciente</h3>
+                                            <span id="contact-status" class="contact-status">Paciente</span>
                                         </div>
                                     </div>
 
-                                    <!-- Direita: Ações -->
+                                    <!-- Direita: Acoes -->
                                     <div class="chat-header-actions">
-                                        <button id="chat-info-btn" title="Informações">
+                                        <button id="chat-info-btn" title="Informacoes">
                                             <svg viewBox="0 0 24 24" width="24" height="24">
                                                 <path fill="currentColor"
                                                     d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z">
@@ -183,13 +182,6 @@
 
                                 <!-- Input Area -->
                                 <div class="chat-input">
-                                    <button class="attach-btn" title="Anexar">
-                                        <svg viewBox="0 0 24 24" width="24" height="24">
-                                            <path fill="currentColor"
-                                                d="M1.816 15.556v.002c0 1.502.584 2.912 1.646 3.972s2.472 1.647 3.974 1.647a5.58 5.58 0 0 0 3.972-1.645l9.547-9.548c.769-.768 1.147-1.767 1.058-2.817-.079-.968-.548-1.927-1.319-2.698-1.594-1.592-4.068-1.711-5.517-.262l-7.916 7.915c-.881.881-.792 2.25.214 3.261.959.958 2.423 1.053 3.263.215l5.511-5.512c.28-.28.267-.722.053-.936l-.244-.244c-.191-.191-.567-.349-.957.04l-5.506 5.506c-.18.18-.635.127-.976-.214-.098-.097-.576-.613-.213-.973l7.915-7.917c.818-.817 2.267-.699 3.23.262.5.501.802 1.1.849 1.685.051.573-.156 1.111-.589 1.543l-9.547 9.549a3.97 3.97 0 0 1-2.829 1.171 3.975 3.975 0 0 1-2.83-1.173 3.973 3.973 0 0 1-1.172-2.828c0-1.071.415-2.076 1.172-2.83l7.209-7.211c.157-.157.264-.579.028-.814L11.5 4.36c-.191-.191-.553-.08-.704.07l-7.205 7.207a5.577 5.577 0 0 0-1.775 3.919z">
-                                            </path>
-                                        </svg>
-                                    </button>
                                     <div class="input-wrapper">
                                         <textarea id="message-input" placeholder="Digite uma mensagem..."
                                             rows="1"></textarea>
@@ -214,27 +206,21 @@
                                             </path>
                                         </svg>
                                     </button>
-                                    <h3>Informações do Contato</h3>
+                                    <h3>Informacoes do Paciente</h3>
                                 </div>
 
                                 <div class="contact-info-body">
                                     <!-- Foto e Nome -->
                                     <div class="contact-profile">
                                         <div class="contact-profile-photo" id="info-contact-photo"></div>
-                                        <h2 id="info-contact-name">Nome do Contato</h2>
+                                        <h2 id="info-contact-name">Nome do Paciente</h2>
                                         <p id="info-contact-subtitle" class="contact-subtitle"></p>
                                     </div>
 
-                                    <!-- Seção: Número de Telefone -->
+                                    <!-- Secao: Prontuario -->
                                     <div class="info-section">
-                                        <h4>Número de telefone</h4>
-                                        <p id="info-contact-phone" class="info-value">+55 11 00000-0000</p>
-                                    </div>
-
-                                    <!-- Seção: Mensagens Temporárias -->
-                                    <div class="info-section">
-                                        <h4>Mensagens temporárias</h4>
-                                        <p class="info-value">Desativadas</p>
+                                        <h4>Prontuario</h4>
+                                        <p id="info-contact-phone" class="info-value">-</p>
                                     </div>
                                 </div>
                             </div>

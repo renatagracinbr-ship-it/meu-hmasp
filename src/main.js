@@ -28,6 +28,7 @@ import * as DesmarcacaoConsultas from './components/desmarcacaoConsultas.js';
 import * as ConfiguracaoMensagens from './components/configuracaoMensagens.js';
 import * as ConsultasPaciente from './components/consultasPaciente.js';
 import * as MonitoramentoGlobal from './services/monitoramentoGlobal.service.js';
+import * as ChatProprio from './components/chatProprio.js';
 
 // URL base da API
 const API_BASE = CONFIG.WHATSAPP_BACKEND;
@@ -1945,8 +1946,8 @@ function showAppDirect() {
     // Configura ações do sistema (sem logout)
     setupSystemActionsNoAuth();
 
-    // Conecta ao WhatsApp via REST API
-    connectWhatsApp();
+    // Inicializa Chat Proprio (substitui WhatsApp)
+    ChatProprio.init();
 
     // Configura eventos da interface
     setupEventListeners();

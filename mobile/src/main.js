@@ -18,11 +18,29 @@ const state = {
     messages: [],
     consultas: [],
     unreadMessages: 0,
-    isConnected: false
+    isConnected: false,
+    conversaId: null,      // ID da conversa no chat proprio
+    lastMessageTimestamp: null,
+    pollingInterval: null,
+    isLoggedIn: false
 };
 
 // Elementos DOM
 const elements = {
+    // Login
+    loginScreen: document.getElementById('login-screen'),
+    loginForm: document.getElementById('login-form'),
+    loginCpf: document.getElementById('login-cpf'),
+    loginProntuario: document.getElementById('login-prontuario'),
+    loginBtn: document.getElementById('login-btn'),
+    smsVerify: document.getElementById('sms-verify'),
+    smsCode: document.getElementById('sms-code'),
+    verifyCodeBtn: document.getElementById('verify-code-btn'),
+    resendCodeBtn: document.getElementById('resend-code-btn'),
+
+    // App
+    app: document.getElementById('app'),
+
     // Screens
     homeScreen: document.getElementById('home-screen'),
     chatScreen: document.getElementById('chat-screen'),
@@ -60,6 +78,9 @@ const elements = {
 async function init() {
     console.log('[MeuHMASP] Iniciando aplicacao...');
 
+    // Configura login
+    setupLogin();
+
     // Configura navegacao
     setupNavigation();
 
@@ -76,22 +97,245 @@ async function init() {
 }
 
 /**
+ * Configura eventos de login
+ */
+function setupLogin() {
+    // Mascara para CPF
+    if (elements.loginCpf) {
+        elements.loginCpf.addEventListener('input', (e) => {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 11) value = value.slice(0, 11);
+
+            // Formata CPF: 000.000.000-00
+            if (value.length > 9) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            } else if (value.length > 6) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})/, '$1.$2.$3');
+            } else if (value.length > 3) {
+                value = value.replace(/(\d{3})(\d{3})/, '$1.$2');
+            }
+
+            e.target.value = value;
+        });
+    }
+
+    // Botao de login
+    if (elements.loginBtn) {
+        elements.loginBtn.addEventListener('click', handleLogin);
+    }
+
+    // Enter no formulario
+    if (elements.loginProntuario) {
+        elements.loginProntuario.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleLogin();
+        });
+    }
+
+    // Verificacao de codigo SMS
+    if (elements.verifyCodeBtn) {
+        elements.verifyCodeBtn.addEventListener('click', handleVerifyCode);
+    }
+
+    // Reenviar codigo
+    if (elements.resendCodeBtn) {
+        elements.resendCodeBtn.addEventListener('click', handleResendCode);
+    }
+}
+
+/**
+ * Trata login
+ */
+async function handleLogin() {
+    const cpf = elements.loginCpf.value.replace(/\D/g, '');
+    const prontuario = elements.loginProntuario.value.trim();
+
+    if (!cpf || cpf.length !== 11) {
+        alert('Digite um CPF valido');
+        return;
+    }
+
+    if (!prontuario) {
+        alert('Digite o numero do prontuario');
+        return;
+    }
+
+    // Mostra loading
+    elements.loginBtn.classList.add('loading');
+    elements.loginBtn.disabled = true;
+
+    try {
+        // Busca dados do paciente no backend
+        const response = await fetch(`${API_BASE}/api/paciente/verificar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cpf, prontuario })
+        });
+
+        const data = await response.json();
+
+        if (data.success && data.paciente) {
+            // Login bem sucedido
+            loginSuccess(data.paciente);
+        } else {
+            alert(data.error || 'CPF ou prontuario nao encontrado');
+        }
+    } catch (error) {
+        console.error('[Login] Erro:', error);
+        // Modo offline - usa dados mockados para teste
+        loginWithMockData(cpf, prontuario);
+    } finally {
+        elements.loginBtn.classList.remove('loading');
+        elements.loginBtn.disabled = false;
+    }
+}
+
+/**
+ * Login com dados mockados (quando servidor nao disponivel)
+ */
+function loginWithMockData(cpf, prontuario) {
+    console.log('[Login] Usando modo offline');
+
+    const mockPaciente = {
+        id: prontuario,
+        nome: 'Paciente ' + prontuario,
+        prontuario: prontuario,
+        cpf: cpf,
+        telefone: '11999887766'
+    };
+
+    loginSuccess(mockPaciente);
+}
+
+/**
+ * Login bem sucedido
+ */
+function loginSuccess(paciente) {
+    state.currentUser = paciente;
+    state.currentPatient = {
+        id: paciente.prontuario,
+        nome: paciente.nome,
+        prontuario: paciente.prontuario,
+        relationship: 'titular',
+        isMain: true
+    };
+    state.patients = [state.currentPatient];
+    state.isLoggedIn = true;
+
+    // Salva no localStorage
+    localStorage.setItem('meuHmasp_user', JSON.stringify({
+        ...paciente,
+        patients: state.patients
+    }));
+
+    // Mostra app
+    showApp();
+
+    // Inicializa chat
+    initializeChatConversa();
+}
+
+/**
+ * Mostra o app principal
+ */
+function showApp() {
+    if (elements.loginScreen) {
+        elements.loginScreen.style.display = 'none';
+    }
+    if (elements.app) {
+        elements.app.style.display = 'block';
+    }
+
+    updateUserInterface();
+    loadConsultas();
+}
+
+/**
+ * Mostra tela de login
+ */
+function showLogin() {
+    if (elements.loginScreen) {
+        elements.loginScreen.style.display = 'flex';
+    }
+    if (elements.app) {
+        elements.app.style.display = 'none';
+    }
+}
+
+/**
+ * Trata verificacao de codigo SMS (para uso futuro com Firebase)
+ */
+async function handleVerifyCode() {
+    const code = elements.smsCode.value.trim();
+    if (!code || code.length !== 6) {
+        alert('Digite o codigo de 6 digitos');
+        return;
+    }
+
+    // TODO: Integrar com Firebase Auth
+    console.log('[Auth] Verificando codigo:', code);
+}
+
+/**
+ * Reenvia codigo SMS
+ */
+async function handleResendCode() {
+    // TODO: Integrar com Firebase Auth
+    console.log('[Auth] Reenviando codigo...');
+    alert('Codigo reenviado!');
+}
+
+/**
+ * Faz logout
+ */
+function handleLogout() {
+    state.currentUser = null;
+    state.currentPatient = null;
+    state.patients = [];
+    state.isLoggedIn = false;
+    state.conversaId = null;
+
+    // Limpa localStorage
+    localStorage.removeItem('meuHmasp_user');
+
+    // Para polling
+    if (state.pollingInterval) {
+        clearInterval(state.pollingInterval);
+        state.pollingInterval = null;
+    }
+
+    // Mostra login
+    showLogin();
+}
+
+// Expoe logout globalmente
+window.logout = handleLogout;
+
+/**
  * Verifica se o usuario esta autenticado
  */
 async function checkAuth() {
-    // Por enquanto, usamos dados de teste
-    // No futuro, isso sera integrado com Firebase Auth
-
     const savedUser = localStorage.getItem('meuHmasp_user');
 
     if (savedUser) {
-        state.currentUser = JSON.parse(savedUser);
-        state.patients = state.currentUser.patients || [];
-        updateUserInterface();
-        loadConsultas();
+        try {
+            const userData = JSON.parse(savedUser);
+            state.currentUser = userData;
+            state.patients = userData.patients || [];
+            state.currentPatient = state.patients[0] || null;
+            state.isLoggedIn = true;
+
+            // Mostra app
+            showApp();
+
+            // Inicializa chat
+            initializeChatConversa();
+        } catch (e) {
+            console.error('[Auth] Erro ao carregar usuario:', e);
+            showLogin();
+        }
     } else {
-        // Para testes, cria um usuario de exemplo
-        await mockLogin();
+        // Mostra tela de login
+        showLogin();
     }
 }
 
@@ -128,6 +372,9 @@ async function mockLogin() {
 
     updateUserInterface();
     loadConsultas();
+
+    // Inicializa chat
+    initializeChatConversa();
 }
 
 /**
@@ -282,8 +529,103 @@ function setupChat() {
     // Botao de enviar
     elements.sendMessageBtn.addEventListener('click', sendMessage);
 
-    // Carrega mensagens existentes
-    loadMessages();
+    // Inicializa conversa quando tiver paciente
+    if (state.currentPatient) {
+        initializeChatConversa();
+    }
+}
+
+/**
+ * Inicializa conversa no chat proprio
+ */
+async function initializeChatConversa() {
+    if (!state.currentPatient) return;
+
+    try {
+        // Cria ou busca conversa para o paciente
+        const response = await fetch(`${API_BASE}/api/chat-proprio/conversas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                pacienteId: state.currentPatient.prontuario,
+                pacienteNome: state.currentPatient.nome,
+                pacienteTelefone: state.currentUser?.telefone || null
+            })
+        });
+
+        const data = await response.json();
+        if (data.success && data.conversa) {
+            state.conversaId = data.conversa.id;
+            console.log('[Chat] Conversa inicializada:', state.conversaId);
+
+            // Carrega mensagens existentes
+            await loadMessages();
+
+            // Inicia polling para novas mensagens
+            startMessagesPolling();
+        }
+    } catch (error) {
+        console.error('[Chat] Erro ao inicializar conversa:', error);
+    }
+}
+
+/**
+ * Inicia polling de mensagens
+ */
+function startMessagesPolling() {
+    if (state.pollingInterval) {
+        clearInterval(state.pollingInterval);
+    }
+
+    state.pollingInterval = setInterval(async () => {
+        if (state.conversaId) {
+            await checkNewMessages();
+        }
+    }, 3000); // Verifica a cada 3 segundos
+}
+
+/**
+ * Verifica novas mensagens
+ */
+async function checkNewMessages() {
+    if (!state.conversaId) return;
+
+    try {
+        const params = state.lastMessageTimestamp
+            ? `?apos=${encodeURIComponent(state.lastMessageTimestamp)}`
+            : '';
+
+        const response = await fetch(
+            `${API_BASE}/api/chat-proprio/conversas/${state.conversaId}/mensagens/recentes${params}`
+        );
+
+        const data = await response.json();
+        if (data.success && data.mensagens && data.mensagens.length > 0) {
+            data.mensagens.forEach(msg => {
+                // Atualiza timestamp
+                state.lastMessageTimestamp = msg.created_at;
+
+                // Se nao e mensagem do paciente, adiciona na UI
+                if (msg.remetente_tipo !== 'paciente') {
+                    addMessageToUI({
+                        id: msg.id,
+                        text: msg.conteudo,
+                        fromMe: false,
+                        timestamp: new Date(msg.created_at)
+                    });
+
+                    // Incrementa contador de nao lidas se nao estiver na tela de chat
+                    const chatScreen = document.getElementById('chat-screen');
+                    if (!chatScreen.classList.contains('active')) {
+                        state.unreadMessages++;
+                        updateUnreadBadge();
+                    }
+                }
+            });
+        }
+    } catch (error) {
+        console.log('[Chat] Erro ao verificar mensagens:', error.message);
+    }
 }
 
 /**
@@ -293,11 +635,20 @@ async function sendMessage() {
     const text = elements.chatInput.value.trim();
     if (!text) return;
 
+    // Verifica se tem conversa
+    if (!state.conversaId) {
+        await initializeChatConversa();
+        if (!state.conversaId) {
+            alert('Erro ao conectar ao chat. Tente novamente.');
+            return;
+        }
+    }
+
     // Limpa input
     elements.chatInput.value = '';
     elements.sendMessageBtn.disabled = true;
 
-    // Adiciona mensagem na UI
+    // Adiciona mensagem na UI imediatamente
     const message = {
         id: Date.now(),
         text: text,
@@ -309,17 +660,25 @@ async function sendMessage() {
 
     // Envia para o servidor
     try {
-        await fetch(`${API_BASE}/api/chat/send`, {
+        const response = await fetch(`${API_BASE}/api/chat-proprio/mensagens`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                patientId: state.currentPatient.prontuario,
-                message: text
+                conversaId: state.conversaId,
+                remetenteTipo: 'paciente',
+                remetenteId: state.currentPatient.prontuario,
+                remetenteNome: state.currentPatient.nome,
+                conteudo: text
             })
         });
+
+        const data = await response.json();
+        if (data.success) {
+            state.lastMessageTimestamp = data.mensagem.created_at;
+        }
     } catch (error) {
         console.error('[Chat] Erro ao enviar mensagem:', error);
-        // TODO: Mostrar erro para o usuario
+        alert('Erro ao enviar mensagem. Verifique sua conexao.');
     }
 }
 
@@ -355,19 +714,58 @@ function addMessageToUI(message) {
  * Carrega mensagens do servidor
  */
 async function loadMessages() {
+    if (!state.conversaId) return;
+
     try {
-        const response = await fetch(`${API_BASE}/api/chat/messages?patientId=${state.currentPatient?.prontuario || ''}`);
+        const response = await fetch(
+            `${API_BASE}/api/chat-proprio/conversas/${state.conversaId}/mensagens?ordem=ASC`
+        );
         const data = await response.json();
 
-        if (data.messages && data.messages.length > 0) {
+        if (data.success && data.mensagens && data.mensagens.length > 0) {
             // Remove mensagem de boas vindas
             const welcome = elements.chatMessages.querySelector('.chat-welcome');
             if (welcome) welcome.remove();
 
-            data.messages.forEach(msg => addMessageToUI(msg));
+            // Limpa mensagens existentes
+            const existingMessages = elements.chatMessages.querySelectorAll('.message');
+            existingMessages.forEach(m => m.remove());
+
+            // Adiciona mensagens
+            data.mensagens.forEach(msg => {
+                addMessageToUI({
+                    id: msg.id,
+                    text: msg.conteudo,
+                    fromMe: msg.remetente_tipo === 'paciente',
+                    timestamp: new Date(msg.created_at)
+                });
+
+                // Atualiza ultimo timestamp
+                state.lastMessageTimestamp = msg.created_at;
+            });
+
+            // Marca como lidas
+            await markMessagesAsReadOnServer();
         }
     } catch (error) {
         console.log('[Chat] Servidor nao disponivel, usando modo offline');
+    }
+}
+
+/**
+ * Marca mensagens como lidas no servidor
+ */
+async function markMessagesAsReadOnServer() {
+    if (!state.conversaId) return;
+
+    try {
+        await fetch(`${API_BASE}/api/chat-proprio/conversas/${state.conversaId}/marcar-lidas`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lidoPor: 'paciente' })
+        });
+    } catch (error) {
+        console.log('[Chat] Erro ao marcar como lidas:', error.message);
     }
 }
 
@@ -377,6 +775,7 @@ async function loadMessages() {
 function markMessagesAsRead() {
     state.unreadMessages = 0;
     updateUnreadBadge();
+    markMessagesAsReadOnServer();
 }
 
 /**

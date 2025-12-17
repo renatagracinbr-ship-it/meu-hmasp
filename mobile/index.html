@@ -15,7 +15,53 @@
 </head>
 
 <body>
-    <div id="app">
+    <!-- Tela de Login -->
+    <div id="login-screen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <img src="/assets/logo-hmasp.png" alt="HMASP" class="login-logo">
+                <h1>Meu HMASP</h1>
+                <p>Acesse suas consultas e fale com a Central de Regulacao</p>
+            </div>
+
+            <!-- Formulario de Login -->
+            <div class="login-form" id="login-form">
+                <div class="form-group">
+                    <label for="login-cpf">CPF</label>
+                    <input type="tel" id="login-cpf" placeholder="000.000.000-00" maxlength="14" autocomplete="off">
+                </div>
+                <div class="form-group">
+                    <label for="login-prontuario">Prontuario</label>
+                    <input type="text" id="login-prontuario" placeholder="Numero do prontuario" maxlength="10" autocomplete="off">
+                </div>
+                <button type="button" id="login-btn" class="btn-primary btn-block">
+                    Entrar
+                </button>
+                <p class="login-help">
+                    Primeira vez? Use seu CPF e numero do prontuario do HMASP
+                </p>
+            </div>
+
+            <!-- Verificacao SMS (oculto inicialmente) -->
+            <div class="sms-verify" id="sms-verify" style="display: none;">
+                <p>Digite o codigo enviado para seu celular</p>
+                <div class="code-input-group">
+                    <input type="tel" id="sms-code" placeholder="000000" maxlength="6" autocomplete="one-time-code">
+                </div>
+                <button type="button" id="verify-code-btn" class="btn-primary btn-block">
+                    Verificar
+                </button>
+                <button type="button" id="resend-code-btn" class="btn-link">
+                    Reenviar codigo
+                </button>
+            </div>
+        </div>
+
+        <!-- reCAPTCHA container (invisivel) -->
+        <div id="recaptcha-container"></div>
+    </div>
+
+    <div id="app" style="display: none;">
         <!-- Header -->
         <header class="mobile-header">
             <div class="header-logo">

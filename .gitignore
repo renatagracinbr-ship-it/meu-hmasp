@@ -4,6 +4,11 @@ electron/node_modules/
 
 # Build
 dist/
+mobile/dist/
+
+# Firebase
+mobile/.firebase/
+.firebaserc
 
 # Autenticação local (NÃO COMMITAR!)
 server/data/

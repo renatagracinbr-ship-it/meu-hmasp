@@ -20,6 +20,7 @@ const WhatsAppRespostasService = require('./server/database/whatsappRespostas.se
 const MensagensWhatsApp = require('./server/database/mensagensWhatsApp.service');
 const ContatosService = require('./server/database/contatos.service');
 const ChatContextosService = require('./server/database/chatContextos.service');
+const ChatService = require('./server/database/chat.service');
 
 // ============================================================================
 // API OFICIAL DO WHATSAPP (META CLOUD API)
@@ -2932,6 +2933,319 @@ app.get('/api/aghuse/patient-appointments', async (req, res) => {
 });
 
 // ============================================================================
+// CHAT PROPRIO - API do Sistema de Mensagens Interno (Meu HMASP)
+// ============================================================================
+// Substitui a dependencia do WhatsApp por chat interno
+
+// Listar conversas ativas
+app.get('/api/chat-proprio/conversas', async (req, res) => {
+    try {
+        const { status = 'ativa', limit = 50, offset = 0 } = req.query;
+        const conversas = ChatService.listarConversas({
+            status,
+            limit: parseInt(limit),
+            offset: parseInt(offset)
+        });
+        res.json({ success: true, conversas });
+    } catch (error) {
+        console.error('[Chat] Erro ao listar conversas:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Buscar conversa por ID
+app.get('/api/chat-proprio/conversas/:id', async (req, res) => {
+    try {
+        const conversa = ChatService.getConversa(parseInt(req.params.id));
+        if (!conversa) {
+            return res.status(404).json({ success: false, error: 'Conversa nao encontrada' });
+        }
+        res.json({ success: true, conversa });
+    } catch (error) {
+        console.error('[Chat] Erro ao buscar conversa:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Buscar ou criar conversa para um paciente
+app.post('/api/chat-proprio/conversas', async (req, res) => {
+    try {
+        const { pacienteId, pacienteNome, pacienteTelefone } = req.body;
+        if (!pacienteId) {
+            return res.status(400).json({ success: false, error: 'pacienteId e obrigatorio' });
+        }
+        const conversa = ChatService.getOrCreateConversa(pacienteId, pacienteNome, pacienteTelefone);
+        res.json({ success: true, conversa });
+    } catch (error) {
+        console.error('[Chat] Erro ao criar conversa:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Arquivar conversa
+app.post('/api/chat-proprio/conversas/:id/arquivar', async (req, res) => {
+    try {
+        ChatService.arquivarConversa(parseInt(req.params.id));
+        res.json({ success: true, message: 'Conversa arquivada' });
+    } catch (error) {
+        console.error('[Chat] Erro ao arquivar conversa:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Listar mensagens de uma conversa
+app.get('/api/chat-proprio/conversas/:id/mensagens', async (req, res) => {
+    try {
+        const { limit = 50, offset = 0, ordem = 'ASC' } = req.query;
+        const mensagens = ChatService.listarMensagens(parseInt(req.params.id), {
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            ordem
+        });
+        res.json({ success: true, mensagens });
+    } catch (error) {
+        console.error('[Chat] Erro ao listar mensagens:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Buscar mensagens recentes (para polling)
+app.get('/api/chat-proprio/conversas/:id/mensagens/recentes', async (req, res) => {
+    try {
+        const { apos } = req.query;
+        const mensagens = ChatService.getMensagensRecentes(parseInt(req.params.id), apos);
+        res.json({ success: true, mensagens });
+    } catch (error) {
+        console.error('[Chat] Erro ao buscar mensagens recentes:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Enviar mensagem
+app.post('/api/chat-proprio/mensagens', async (req, res) => {
+    try {
+        const { conversaId, remetenteTipo, remetenteId, remetenteNome, conteudo, tipo = 'texto' } = req.body;
+
+        if (!conversaId || !remetenteTipo || !conteudo) {
+            return res.status(400).json({
+                success: false,
+                error: 'Campos obrigatorios: conversaId, remetenteTipo, conteudo'
+            });
+        }
+
+        const mensagem = ChatService.enviarMensagem({
+            conversaId: parseInt(conversaId),
+            remetenteTipo,
+            remetenteId,
+            remetenteNome,
+            conteudo,
+            tipo
+        });
+
+        res.json({ success: true, mensagem });
+    } catch (error) {
+        console.error('[Chat] Erro ao enviar mensagem:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Marcar mensagens como lidas
+app.post('/api/chat-proprio/conversas/:id/marcar-lidas', async (req, res) => {
+    try {
+        const { lidoPor } = req.body;
+        if (!lidoPor || !['paciente', 'operador'].includes(lidoPor)) {
+            return res.status(400).json({
+                success: false,
+                error: 'lidoPor deve ser "paciente" ou "operador"'
+            });
+        }
+        ChatService.marcarComoLidas(parseInt(req.params.id), lidoPor);
+        res.json({ success: true, message: 'Mensagens marcadas como lidas' });
+    } catch (error) {
+        console.error('[Chat] Erro ao marcar como lidas:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Registrar operador online (ping)
+app.post('/api/chat-proprio/operadores/ping', async (req, res) => {
+    try {
+        const { operadorId, operadorNome } = req.body;
+        if (!operadorId || !operadorNome) {
+            return res.status(400).json({
+                success: false,
+                error: 'operadorId e operadorNome sao obrigatorios'
+            });
+        }
+        ChatService.registrarOperadorOnline(operadorId, operadorNome);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Chat] Erro ao registrar operador:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Listar operadores online
+app.get('/api/chat-proprio/operadores/online', async (req, res) => {
+    try {
+        const operadores = ChatService.listarOperadoresOnline();
+        res.json({ success: true, operadores });
+    } catch (error) {
+        console.error('[Chat] Erro ao listar operadores:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Remover operador offline
+app.post('/api/chat-proprio/operadores/offline', async (req, res) => {
+    try {
+        const { operadorId } = req.body;
+        if (!operadorId) {
+            return res.status(400).json({ success: false, error: 'operadorId e obrigatorio' });
+        }
+        ChatService.removerOperadorOffline(operadorId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('[Chat] Erro ao remover operador:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Estatisticas do chat
+app.get('/api/chat-proprio/estatisticas', async (req, res) => {
+    try {
+        const stats = ChatService.getEstatisticas();
+        res.json({ success: true, estatisticas: stats });
+    } catch (error) {
+        console.error('[Chat] Erro ao buscar estatisticas:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Contar mensagens nao lidas (para badge)
+app.get('/api/chat-proprio/nao-lidas', async (req, res) => {
+    try {
+        const total = ChatService.contarNaoLidas();
+        res.json({ success: true, naoLidas: total });
+    } catch (error) {
+        console.error('[Chat] Erro ao contar nao lidas:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============================================================================
+// PACIENTE - Endpoints do App Mobile (Meu HMASP)
+// ============================================================================
+
+// Verificar paciente por CPF e prontuario (login do app mobile)
+app.post('/api/paciente/verificar', async (req, res) => {
+    try {
+        const { cpf, prontuario } = req.body;
+
+        if (!cpf || !prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'CPF e prontuario sao obrigatorios'
+            });
+        }
+
+        console.log('[Paciente] Verificando:', { cpf: cpf.substring(0, 3) + '***', prontuario });
+
+        // Busca no AGHUse
+        const paciente = await aghuse.searchPatient({ cpf, prontuario });
+
+        if (paciente && paciente.length > 0) {
+            const p = paciente[0];
+            res.json({
+                success: true,
+                paciente: {
+                    id: p.pac_codigo,
+                    prontuario: p.prontuario,
+                    nome: p.nome,
+                    cpf: cpf,
+                    telefone: p.telefone_celular || p.telefone_fixo || null
+                }
+            });
+        } else {
+            res.json({
+                success: false,
+                error: 'Paciente nao encontrado. Verifique CPF e prontuario.'
+            });
+        }
+    } catch (error) {
+        console.error('[Paciente] Erro ao verificar:', error);
+
+        // Modo offline - retorna dados mockados para teste
+        res.json({
+            success: true,
+            paciente: {
+                id: req.body.prontuario,
+                prontuario: req.body.prontuario,
+                nome: 'Paciente ' + req.body.prontuario,
+                cpf: req.body.cpf,
+                telefone: null
+            },
+            offline: true
+        });
+    }
+});
+
+// Buscar consultas do paciente (app mobile)
+app.get('/api/paciente/consultas', async (req, res) => {
+    try {
+        const { prontuario } = req.query;
+
+        if (!prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'Prontuario e obrigatorio'
+            });
+        }
+
+        console.log('[Paciente] Buscando consultas para prontuario:', prontuario);
+
+        const consultas = await aghuse.fetchPatientAppointments({
+            prontuario,
+            apenasAgendadas: true
+        });
+
+        // Formata para o app mobile
+        const consultasFormatadas = consultas.map(c => ({
+            id: c.consulta_numero,
+            dataFormatada: new Date(c.data_hora_consulta).toLocaleDateString('pt-BR'),
+            horaFormatada: new Date(c.data_hora_consulta).toLocaleTimeString('pt-BR', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }),
+            especialidade: c.especialidade || 'Consulta',
+            profissional: c.profissional_nome || 'A confirmar',
+            local: c.local_descricao || 'HMASP',
+            status: mapSituacaoToStatus(c.situacao_codigo)
+        }));
+
+        res.json({
+            success: true,
+            consultas: consultasFormatadas
+        });
+    } catch (error) {
+        console.error('[Paciente] Erro ao buscar consultas:', error);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Mapeia codigo de situacao para status do app
+function mapSituacaoToStatus(situacao) {
+    const mapeamento = {
+        'A': 'pendente',     // Agendada
+        'C': 'confirmada',   // Confirmada
+        'N': 'cancelada',    // Nao compareceu
+        'R': 'cancelada',    // Reagendada
+        'D': 'cancelada'     // Desmarcada
+    };
+    return mapeamento[situacao] || 'pendente';
+}
+
+// ============================================================================
 // DATABASE - Otimização de Performance
 // ============================================================================
 
@@ -5480,6 +5794,14 @@ httpServer = app.listen(PORT, '0.0.0.0', () => {
         console.log(`   📊 Estatísticas: ${stats.ativos} ativos, ${stats.expirados} expirados, ${stats.total} total`);
     } catch (error) {
         console.error('❌ Erro ao inicializar sistema de Contextos:', error);
+    }
+
+    // Inicializa sistema de Chat Proprio (Meu HMASP)
+    try {
+        ChatService.initialize();
+        console.log('✅ Sistema de Chat Proprio inicializado (SQLite)');
+    } catch (error) {
+        console.error('❌ Erro ao inicializar sistema de Chat:', error);
     }
 
     // Inicializa WhatsApp

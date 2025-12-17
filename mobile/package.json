@@ -18,7 +18,7 @@
   "author": "HMASP",
   "license": "MIT",
   "dependencies": {
-    "firebase": "^10.7.0"
+    "firebase": "^10.14.1"
   },
   "devDependencies": {
     "vite": "^5.4.21"

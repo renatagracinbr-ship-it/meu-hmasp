@@ -158,7 +158,10 @@
       "Bash(if exist node_modules echo \"node_modules existe\")",
       "Bash(if exist .wwebjs_auth echo \".wwebjs_auth existe\")",
       "Bash(if exist dist echo \"dist existe\")",
-      "Bash(if exist .git echo \".git existe\")"
+      "Bash(if exist .git echo \".git existe\")",
+      "Bash(firebase:*)",
+      "Bash(if not exist \"public\\icons\" mkdir \"public\\icons\")",
+      "Bash(if not exist \"public\\assets\" mkdir \"public\\assets\")"
     ],
     "deny": [],
     "ask": []
