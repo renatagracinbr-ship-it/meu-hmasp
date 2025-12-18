@@ -148,6 +148,43 @@ class ChatService {
     }
 
     /**
+     * Busca conversa por prontuario (alias para getConversaPorPaciente)
+     * @param {string} prontuario - Prontuario do paciente
+     */
+    buscarConversaPorProntuario(prontuario) {
+        return this.getConversaPorPaciente(prontuario);
+    }
+
+    /**
+     * Cria uma nova conversa
+     * @param {Object} dados - Dados da conversa
+     */
+    criarConversa(dados) {
+        try {
+            const {
+                pacienteNome,
+                prontuario,
+                pacienteTelefone = null,
+                origem = 'sistema',
+                status = 'ativa'
+            } = dados;
+
+            const result = this.db.prepare(`
+                INSERT INTO chat_conversas (paciente_id, paciente_nome, paciente_telefone, status)
+                VALUES (?, ?, ?, ?)
+            `).run(prontuario, pacienteNome, pacienteTelefone, status);
+
+            return this.db.prepare(`
+                SELECT * FROM chat_conversas WHERE id = ?
+            `).get(result.lastInsertRowid);
+
+        } catch (error) {
+            console.error('[Chat] Erro ao criar conversa:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Arquiva uma conversa
      */
     arquivarConversa(conversaId) {
@@ -203,6 +240,124 @@ class ChatService {
 
         } catch (error) {
             console.error('[Chat] Erro ao enviar mensagem:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Adiciona uma mensagem (com suporte a metadata para botões de ação)
+     * @param {Object} dados - Dados da mensagem
+     */
+    adicionarMensagem(dados) {
+        try {
+            const {
+                conversaId,
+                conteudo,
+                remetenteTipo = 'operador',
+                remetenteId = null,
+                remetenteNome = 'Sistema',
+                lido = false,
+                tipo = 'texto',
+                metadata = null
+            } = dados;
+
+            // Valida dados obrigatorios
+            if (!conversaId || !conteudo) {
+                throw new Error('Dados obrigatorios: conversaId, conteudo');
+            }
+
+            // Verifica se a tabela tem coluna metadata
+            let hasMetadataColumn = true;
+            try {
+                this.db.prepare(`SELECT metadata FROM chat_mensagens LIMIT 1`).get();
+            } catch (e) {
+                hasMetadataColumn = false;
+                // Adiciona coluna metadata se não existir
+                try {
+                    this.db.exec(`ALTER TABLE chat_mensagens ADD COLUMN metadata TEXT`);
+                    console.log('[Chat] Coluna metadata adicionada à tabela chat_mensagens');
+                    hasMetadataColumn = true;
+                } catch (alterError) {
+                    console.warn('[Chat] Não foi possível adicionar coluna metadata:', alterError.message);
+                }
+            }
+
+            let result;
+            if (hasMetadataColumn) {
+                result = this.db.prepare(`
+                    INSERT INTO chat_mensagens
+                    (conversa_id, remetente_tipo, remetente_id, remetente_nome, tipo, conteudo, metadata)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                `).run(conversaId, remetenteTipo, remetenteId, remetenteNome, tipo, conteudo, metadata);
+            } else {
+                result = this.db.prepare(`
+                    INSERT INTO chat_mensagens
+                    (conversa_id, remetente_tipo, remetente_id, remetente_nome, tipo, conteudo)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                `).run(conversaId, remetenteTipo, remetenteId, remetenteNome, tipo, conteudo);
+            }
+
+            // Atualiza ultima_mensagem_at na conversa
+            this.db.prepare(`
+                UPDATE chat_conversas
+                SET ultima_mensagem_at = CURRENT_TIMESTAMP,
+                    mensagens_nao_lidas_paciente = mensagens_nao_lidas_paciente + 1
+                WHERE id = ?
+            `).run(conversaId);
+
+            // Retorna mensagem criada
+            const mensagem = this.db.prepare(`
+                SELECT * FROM chat_mensagens WHERE id = ?
+            `).get(result.lastInsertRowid);
+
+            console.log(`[Chat] Mensagem adicionada: ${mensagem.id} (${remetenteTipo})`);
+            return mensagem;
+
+        } catch (error) {
+            console.error('[Chat] Erro ao adicionar mensagem:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Atualiza metadata de uma mensagem
+     * @param {number} messageId - ID da mensagem
+     * @param {Object} metadataUpdate - Campos a atualizar no metadata
+     */
+    atualizarMetadataMensagem(messageId, metadataUpdate) {
+        try {
+            // Busca mensagem atual
+            const mensagem = this.db.prepare(`
+                SELECT metadata FROM chat_mensagens WHERE id = ?
+            `).get(messageId);
+
+            if (!mensagem) {
+                throw new Error('Mensagem não encontrada');
+            }
+
+            // Parseia metadata existente
+            let metadata = {};
+            try {
+                if (mensagem.metadata) {
+                    metadata = JSON.parse(mensagem.metadata);
+                }
+            } catch (e) {
+                console.warn('[Chat] Erro ao parsear metadata existente');
+            }
+
+            // Merge com atualizações
+            metadata = { ...metadata, ...metadataUpdate };
+
+            // Atualiza no banco
+            this.db.prepare(`
+                UPDATE chat_mensagens
+                SET metadata = ?
+                WHERE id = ?
+            `).run(JSON.stringify(metadata), messageId);
+
+            return true;
+        } catch (error) {
+            console.error('[Chat] Erro ao atualizar metadata:', error);
             throw error;
         }
     }

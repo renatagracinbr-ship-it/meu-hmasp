@@ -5,21 +5,30 @@
  * - Monitorar consultas marcadas em tempo real
  * - Preparar mensagens de confirmação
  * - Gerenciar status de confirmações
- * - Integrar AGHUse + WhatsApp + Templates
- * - Salvar pacientes no banco de dados
- * - Usar fila com proteção anti-banimento
+ * - Integrar AGHUse + Chat Próprio (Push Notifications)
  * - Registrar logs de monitoramento
  */
 
 import * as AghuseService from './aghuse.service.js';
-import * as WhatsAppTemplates from './whatsappTemplates.service.js';
-import * as PacientesService from './pacientes.service.js';
-import * as AgendaService from './agenda.service.js';
 import * as MonitoramentoLog from './monitoramentoLog.service.js';
-import * as WhatsAppQueue from './whatsappQueue.service.js';
 import * as ReagendamentoLinker from './reagendamentoLinker.service.js';
 import { PhoneNormalizer } from '../utils/phoneNormalizer.js';
 import { generateConfirmacaoId } from '../utils/idGenerator.js';
+
+// URL base da API do servidor
+const API_BASE = window.API_BASE_URL || 'http://localhost:3000';
+
+// Status das mensagens (compatível com o sistema anterior)
+const STATUS = {
+    PENDING: 'pending',
+    QUEUED: 'queued',
+    SENT: 'sent',
+    DELIVERED: 'delivered',
+    READ: 'read',
+    FAILED: 'failed',
+    CONFIRMED: 'confirmed',
+    DECLINED: 'declined'
+};
 
 // Estado do monitoramento
 let monitoringInterval = null;
@@ -235,39 +244,27 @@ export function prepareConfirmation(appointment, tipo = 'MARCACAO') {
     // Formato: conf-{consultaNumero}-{timestamp}-{uuid}
     const confirmationId = generateConfirmacaoId(appointment.consultaNumero, 'confirmacao');
 
-    // Prepara telefones (mesmo padrão de desmarcação)
+    // Prepara dados do telefone para exibição
     let telefones = [];
 
     if (appointment.telefones && appointment.telefones.length > 0) {
         // Paciente TEM telefones cadastrados
         telefones = appointment.telefones.map((telefone, index) => {
-            // Determina template baseado no tipo
-            const templateId = tipo === 'MARCACAO'
-                ? 'marcacao_confirmacao'
-                : 'lembrete_72h';
-
-            // Gera mensagem
-            const mensagem = WhatsAppTemplates.generateMessage(templateId, {
-                nomePaciente: appointment.nomeCompleto,
-                especialidade: appointment.especialidade,
-                dataHora: appointment.dataHoraFormatada,
-                medico: appointment.profissional,
-                local: appointment.local
-            });
-
-            // Formata ID do chat WhatsApp
-            const chatId = WhatsAppTemplates.formatWhatsAppChatId(telefone.normalized);
-
             return {
                 telefone: telefone.normalized,
                 telefoneFormatado: PhoneNormalizer.formatForDisplay(telefone.normalized),
                 telefoneType: telefone.type,
                 telefoneOrigem: telefone.original,
-                chatId: chatId,
-                mensagem: mensagem,
-                // IMPORTANTE: Envia para TODOS os telefones, pois há erros de cadastro no AGHUse
-                // Operadores cadastram celulares em campos de fixo/recado
-                status: WhatsAppTemplates.STATUS.PENDING,
+                // Dados para envio via Chat Próprio (não mais WhatsApp)
+                dadosMensagem: {
+                    nomePaciente: appointment.nomeCompleto,
+                    especialidade: appointment.especialidade,
+                    dataHora: appointment.dataHoraFormatada,
+                    medico: appointment.profissional,
+                    local: appointment.local
+                },
+                tipoTemplate: tipo === 'MARCACAO' ? 'marcacao' : 'lembrete72h',
+                status: STATUS.PENDING,
                 prioridade: index + 1,
                 tentativas: 0,
                 logs: []
@@ -280,8 +277,6 @@ export function prepareConfirmation(appointment, tipo = 'MARCACAO') {
             telefoneFormatado: '⚠️ SEM TELEFONE CADASTRADO',
             telefoneType: 'none',
             telefoneOrigem: null,
-            chatId: null,
-            mensagem: null,
             status: 'no_phone',
             prioridade: 1,
             tentativas: 0,
@@ -299,11 +294,11 @@ export function prepareConfirmation(appointment, tipo = 'MARCACAO') {
         statusGeral = 'no_phone';
     }
 
-    // Cria objeto de confirmação (mesmo padrão de desmarcação)
+    // Cria objeto de confirmação
     const confirmation = {
         id: confirmationId,
         tipo: tipo,
-        contexto: 'confirmacao',  // Contexto para identificação (confirmacao ou desmarcacao)
+        contexto: 'confirmacao',
         consultaNumero: appointment.consultaNumero,
         pacCodigo: appointment.pacCodigo,
         prontuario: appointment.prontuario,
@@ -312,16 +307,16 @@ export function prepareConfirmation(appointment, tipo = 'MARCACAO') {
         especialidade: appointment.especialidade,
         dataConsulta: appointment.dataConsulta,
         dataHoraFormatada: appointment.dataHoraFormatada,
-        dataMarcacao: appointment.dataMarcacao,  // Campo da data de marcação
+        dataMarcacao: appointment.dataMarcacao,
         profissional: appointment.profissional,
         local: appointment.local,
         telefones: telefones,
-        mensagens: telefones,  // Alias para compatibilidade (mesmo que desmarcação)
+        mensagens: telefones,  // Alias para compatibilidade
         statusGeral: statusGeral,
         dataApareceuDashboard: new Date().toISOString(),
         criadoEm: new Date(),
         atualizadoEm: new Date(),
-        criadoPor: 'sistema'  // Quem criou a confirmação
+        criadoPor: 'sistema'
     };
 
     // Armazena no store
@@ -331,138 +326,97 @@ export function prepareConfirmation(appointment, tipo = 'MARCACAO') {
 }
 
 /**
- * Envia mensagem de confirmação (com proteção anti-banimento)
+ * Envia mensagem de confirmação via Chat Próprio (Push Notification + Chat)
  *
  * @param {Object} confirmation - Dados da confirmação
- * @param {number} telefoneIndex - Índice do telefone (0 = principal)
+ * @param {number} telefoneIndex - Índice do telefone (0 = principal, ignorado no Chat Próprio)
  * @returns {Promise<Object>} - Resultado do envio
  */
 export async function sendConfirmationMessage(confirmation, telefoneIndex = 0) {
-    const telefone = confirmation.telefones[telefoneIndex];
-
-    if (!telefone) {
-        console.warn(`[Confirmação] ⚠️ Telefone não encontrado no índice ${telefoneIndex}`);
+    // No Chat Próprio, não dependemos de telefone - usamos prontuário
+    if (!confirmation.prontuario) {
+        console.warn(`[Confirmação] ⚠️ Consulta ${confirmation.consultaNumero} sem prontuário`);
         return {
             success: false,
             skipped: true,
-            reason: 'telefone_nao_encontrado',
-            message: 'Telefone não encontrado',
+            reason: 'sem_prontuario',
+            message: 'Consulta sem prontuário',
             timestamp: new Date().toISOString()
         };
     }
 
-    if (!telefone.telefone) {
-        console.warn(`[Confirmação] ⚠️ Paciente ${confirmation.nomePaciente} não possui telefone cadastrado`);
-        return {
-            success: false,
-            skipped: true,
-            reason: 'sem_telefone',
-            message: 'Paciente não possui telefone cadastrado',
-            timestamp: new Date().toISOString()
-        };
+    // Determina endpoint baseado no tipo
+    let endpoint;
+    if (confirmation.reagendamentoDe) {
+        // É reagendamento - usa endpoint de marcação com flag
+        endpoint = '/api/push/notify-marcacao';
+    } else if (confirmation.tipo === 'MARCACAO' || confirmation.tipo === 'marcada') {
+        endpoint = '/api/push/notify-marcacao';
+    } else {
+        // LEMBRETE_72H
+        endpoint = '/api/push/notify-lembrete72h';
     }
 
-    if (!telefone.chatId) {
-        console.error(`[Confirmação] ❌ chatId não foi gerado para telefone: ${telefone.telefone}`);
-        return {
-            success: false,
-            skipped: true,
-            reason: 'chatid_invalido',
-            message: `chatId não foi gerado. Telefone: ${telefone.telefone}`,
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    // Se mensagem não foi gerada (consultas vindas do SQLite), gera agora
-    let mensagem = telefone.mensagem;
-    if (!mensagem || !mensagem.texto) {
-        console.log(`[Confirmação] Gerando mensagem para ${confirmation.nomePaciente}...`);
-
-        // Usa dadosMensagem se disponível, senão usa dados da confirmação
-        const dados = telefone.dadosMensagem || {
-            nomePaciente: confirmation.nomePaciente,
+    const payload = {
+        prontuario: confirmation.prontuario,
+        pacienteNome: confirmation.nomePaciente,
+        consultaId: confirmation.consultaNumero,
+        consultaInfo: {
             especialidade: confirmation.especialidade,
             dataHora: confirmation.dataHoraFormatada,
-            medico: confirmation.profissional
-        };
-
-        // Usa templateId salvo ou determina baseado no tipo
-        // IMPORTANTE: Se é reagendamento, usa template específico!
-        let templateId = telefone.templateId;
-        if (!templateId) {
-            if (confirmation.reagendamentoDe) {
-                // É reagendamento - usa template com 3 botões que permite desmarcação
-                templateId = 'reagendamento_confirmacao';
-            } else if (confirmation.tipo === 'MARCACAO' || confirmation.tipo === 'marcada') {
-                templateId = 'marcacao_confirmacao';
-            } else {
-                templateId = 'lembrete_72h';
-            }
+            profissional: confirmation.profissional,
+            local: confirmation.local
         }
+    };
 
-        mensagem = WhatsAppTemplates.generateMessage(templateId, dados);
-
-        // Atualiza telefone com mensagem gerada
-        telefone.mensagem = mensagem;
+    // Se for reagendamento, adiciona flag
+    if (confirmation.reagendamentoDe) {
+        payload.isReagendamento = true;
+        payload.consultaOriginalId = confirmation.reagendamentoDe;
     }
 
-    if (!mensagem || !mensagem.texto) {
-        console.error(`[Confirmação] ❌ Erro ao gerar mensagem para ${confirmation.nomePaciente}`);
-        return {
-            success: false,
-            skipped: true,
-            reason: 'mensagem_invalida',
-            message: 'Erro ao gerar mensagem',
-            timestamp: new Date().toISOString()
-        };
-    }
+    console.log(`[Confirmação] Enviando via Chat Próprio: ${endpoint}`);
+    console.log(`[Confirmação] Paciente: ${confirmation.nomePaciente}, Consulta: ${confirmation.consultaNumero}`);
 
     try {
-        // Adiciona à fila com proteção anti-banimento
-        const queueId = await WhatsAppQueue.addToQueue({
-            chatId: telefone.chatId,
-            texto: mensagem.texto,
-            botoes: mensagem.botoes,
-            metadata: {
-                confirmacaoId: confirmation.id,  // ID único para rastreamento
-                contexto: 'confirmacao',  // Sempre 'confirmacao' neste serviço
-                consultaNumero: confirmation.consultaNumero,
-                paciente: confirmation.nomePaciente,
-                telefone: telefone.telefone,
-                type: 'confirmacao_presenca'
-            }
+        const response = await fetch(`${API_BASE}${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
 
-        console.log(`[Confirmação] Mensagem adicionada à fila: ${queueId}`);
+        const result = await response.json();
 
-        // Atualiza status para "na fila"
-        telefone.status = 'queued';
-        telefone.queueId = queueId;
-        telefone.tentativas++;
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}`);
+        }
 
-        // Registra log temporário
-        telefone.logs.push(WhatsAppTemplates.createMessageLog({
-            consultaNumero: confirmation.consultaNumero,
-            pacCodigo: confirmation.pacCodigo,
-            telefone: telefone.telefone,
-            telefoneType: telefone.telefoneType,
-            templateId: telefone.mensagem.templateId,
-            status: 'queued',
-            queueId: queueId,
-            tentativa: telefone.tentativas
-        }));
+        console.log(`[Confirmação] ✅ Mensagem enviada via Chat Próprio`);
 
+        // Atualiza status
+        const telefone = confirmation.telefones[telefoneIndex];
+        if (telefone) {
+            telefone.status = STATUS.SENT;
+            telefone.tentativas++;
+            telefone.logs.push({
+                timestamp: new Date().toISOString(),
+                status: STATUS.SENT,
+                metodo: 'chat_proprio',
+                endpoint: endpoint
+            });
+        }
+
+        confirmation.statusGeral = STATUS.SENT;
         confirmation.atualizadoEm = new Date();
         confirmationsStore.set(confirmation.id, confirmation);
 
-        // 🔧 FIX: Marca mensagem como enviada no SQLite
+        // Marca mensagem como enviada no SQLite
         try {
             const ConsultasSQLite = await import('./consultasSQLite.service.js');
-            await ConsultasSQLite.markMensagemEnviada(confirmation.consultaNumero, queueId);
+            await ConsultasSQLite.markMensagemEnviada(confirmation.consultaNumero, `chat-${Date.now()}`);
             console.log(`[Confirmação] ✅ Flag mensagem_enviada atualizada no banco`);
         } catch (error) {
             console.error('[Confirmação] ⚠️ Erro ao atualizar flag mensagem_enviada:', error);
-            // Não quebra o fluxo - mensagem foi adicionada à fila com sucesso
         }
 
         // Registra no log
@@ -471,33 +425,35 @@ export async function sendConfirmationMessage(confirmation, telefoneIndex = 0) {
             'enviado',
             {
                 paciente: confirmation.nomePaciente,
-                telefone: telefone.telefone,
-                queueId: queueId
+                prontuario: confirmation.prontuario,
+                metodo: 'chat_proprio'
             }
         );
 
         return {
             success: true,
-            queueId: queueId,
+            method: 'chat_proprio',
+            pushSent: result.pushSent || false,
+            chatMessageSent: result.chatMessageSent || false,
             timestamp: new Date().toISOString()
         };
 
     } catch (error) {
-        console.error('[Confirmação] Erro ao enviar mensagem:', error);
+        console.error('[Confirmação] ❌ Erro ao enviar via Chat Próprio:', error);
 
         // Atualiza status para falha
-        telefone.status = WhatsAppTemplates.STATUS.FAILED;
-        telefone.logs.push(WhatsAppTemplates.createMessageLog({
-            consultaNumero: confirmation.consultaNumero,
-            pacCodigo: confirmation.pacCodigo,
-            telefone: telefone.telefone,
-            telefoneType: telefone.telefoneType,
-            templateId: telefone.mensagem.templateId,
-            status: WhatsAppTemplates.STATUS.FAILED,
-            tentativa: telefone.tentativas,
-            erro: error.message
-        }));
+        const telefone = confirmation.telefones[telefoneIndex];
+        if (telefone) {
+            telefone.status = STATUS.FAILED;
+            telefone.logs.push({
+                timestamp: new Date().toISOString(),
+                status: STATUS.FAILED,
+                metodo: 'chat_proprio',
+                erro: error.message
+            });
+        }
 
+        confirmation.statusGeral = STATUS.FAILED;
         confirmation.atualizadoEm = new Date();
         confirmationsStore.set(confirmation.id, confirmation);
 
@@ -507,7 +463,7 @@ export async function sendConfirmationMessage(confirmation, telefoneIndex = 0) {
             'falha',
             {
                 paciente: confirmation.nomePaciente,
-                telefone: mensagem.telefone,
+                prontuario: confirmation.prontuario,
                 erro: error.message
             }
         );
@@ -532,26 +488,22 @@ export function registerResponse(confirmationId, botaoId) {
 
     // Atualiza status baseado na resposta
     const novoStatus = botaoId === 'confirmar'
-        ? WhatsAppTemplates.STATUS.CONFIRMED
-        : WhatsAppTemplates.STATUS.DECLINED;
+        ? STATUS.CONFIRMED
+        : STATUS.DECLINED;
 
     // Atualiza todas as mensagens
     confirmation.mensagens.forEach(mensagem => {
-        if (mensagem.status === WhatsAppTemplates.STATUS.SENT ||
-            mensagem.status === WhatsAppTemplates.STATUS.DELIVERED ||
-            mensagem.status === WhatsAppTemplates.STATUS.READ) {
+        if (mensagem.status === STATUS.SENT ||
+            mensagem.status === STATUS.DELIVERED ||
+            mensagem.status === STATUS.READ) {
 
             mensagem.status = novoStatus;
-            mensagem.logs.push(WhatsAppTemplates.createMessageLog({
+            mensagem.logs.push({
+                timestamp: new Date().toISOString(),
                 consultaNumero: confirmation.consultaNumero,
-                pacCodigo: confirmation.pacCodigo,
-                telefone: mensagem.telefone,
-                telefoneType: mensagem.telefoneType,
-                templateId: mensagem.mensagem.templateId,
                 status: novoStatus,
-                botaoClicado: botaoId,
-                timestampResposta: new Date().toISOString()
-            }));
+                botaoClicado: botaoId
+            });
         }
     });
 

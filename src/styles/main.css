@@ -2140,6 +2140,16 @@ body {
 .message-content p {
     margin: 0 0 4px 0;
     word-wrap: break-word;
+    white-space: pre-wrap; /* Preserva quebras de linha */
+}
+
+.message-content p strong {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.message-content p em {
+    font-style: italic;
 }
 
 .message-time {
@@ -2147,4 +2157,185 @@ body {
     color: var(--text-light);
     float: right;
     margin-top: 4px;
+}
+
+/* ============================================
+   Aba de Ações Pendentes
+   ============================================ */
+
+/* Badge na navegação */
+.nav-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: #ef4444;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: badgePulse 2s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.nav-item {
+    position: relative;
+}
+
+/* Header subtitle */
+.header-subtitle {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin-top: 4px;
+    font-weight: normal;
+}
+
+/* Ação item styles */
+.acao-item {
+    border-left: 4px solid #94a3b8;
+    transition: all 0.2s ease;
+}
+
+.acao-item.acao-desmarcar {
+    border-left-color: #ef4444;
+    background: linear-gradient(to right, rgba(239, 68, 68, 0.05), transparent);
+}
+
+.acao-item.acao-reagendar {
+    border-left-color: #f97316;
+    background: linear-gradient(to right, rgba(249, 115, 22, 0.05), transparent);
+}
+
+.acao-item:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Badges de tipo */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-desmarcar {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.badge-reagendar {
+    background: #fff7ed;
+    color: #ea580c;
+    border: 1px solid #fed7aa;
+}
+
+.badge-lembrete {
+    background: #fefce8;
+    color: #ca8a04;
+    border: 1px solid #fef08a;
+}
+
+.badge-marcacao {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+.item-badges {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
+/* Info de ação */
+.item-action-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed #e2e8f0;
+}
+
+.action-type {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.action-type.type-desmarcar {
+    color: #dc2626;
+}
+
+.action-type.type-reagendar {
+    color: #ea580c;
+}
+
+.action-date {
+    font-size: 12px;
+    color: #64748b;
+}
+
+/* Botões de ação */
+.item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 100px;
+}
+
+.btn-action {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.btn-action.btn-primary {
+    background: #0cb7f2;
+    color: white;
+}
+
+.btn-action.btn-primary:hover {
+    background: #0a9fd4;
+}
+
+.btn-action.btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.btn-action.btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+/* Stats cards para ações */
+.stat-card[data-filter-acoes="desmarcar"] .stat-icon {
+    background: #fef2f2;
+}
+
+.stat-card[data-filter-acoes="reagendar"] .stat-icon {
+    background: #fff7ed;
 }

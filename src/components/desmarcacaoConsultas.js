@@ -11,10 +11,8 @@ import * as DesmarcacaoLinker from '../services/desmarcacaoLinker.service.js';
 import { PhoneNormalizer } from '../utils/phoneNormalizer.js';
 import { Toast } from '../utils/toast.js';
 import * as ConsultasSQLite from '../services/consultasSQLite.service.js';
-import * as WhatsAppTemplates from '../services/whatsappTemplates.service.js';
-
-// Helper: Converte Markdown WhatsApp (*negrito*) para HTML <strong>
-function formatWhatsAppToHTML(text) {
+// Helper: Converte Markdown (*negrito*) para HTML <strong>
+function formatMarkdownToHTML(text) {
     if (!text) return text;
 
     // Converte *texto* para <strong>texto</strong>
@@ -33,13 +31,13 @@ const isAdminInterface = window.location.pathname.includes('admin.html');
 
 // Estado do componente
 const state = {
+    initialized: false, // Flag para evitar múltiplas inicializações
     monitoringActive: false,
     desmarcacoes: [],
     desmarcacoesArquivadas: [], // Desmarcações arquivadas (carregadas do banco)
     filtroStatus: 'all',
     filtroNome: '', // Filtro de busca por nome
     mostrarArquivados: false, // Checkbox de mostrar arquivados
-    responsePollingInterval: null,
     autoSendEnabled: false // SEMPRE DESABILITADO - envio manual apenas
 };
 
@@ -64,6 +62,13 @@ const elements = {
  * Inicializa o componente
  */
 export async function init() {
+    // Evita múltiplas inicializações
+    if (state.initialized) {
+        console.log('[Desmarcação] Componente já inicializado, pulando...');
+        return;
+    }
+    state.initialized = true;
+
     console.log('[Desmarcação] Inicializando componente...');
 
     // Captura elementos do DOM
@@ -119,8 +124,9 @@ export async function init() {
     // Inicia monitoramento automaticamente
     await autoStartMonitoring();
 
-    // Inicia polling de respostas do WhatsApp
-    startResponsePolling();
+    // Respostas dos pacientes são processadas via Chat Próprio
+    // O endpoint /api/chat-proprio/acao-resposta atualiza o status diretamente no SQLite
+    console.log('[Desmarcação] 📱 Respostas processadas via Chat Próprio (sem WhatsApp)');
 
     // Inicia auto-arquivamento periódico (a cada 1 hora)
     startAutoArquivamento();
@@ -187,10 +193,6 @@ async function autoStartMonitoring() {
 
         console.log('[Desmarcação] ✅ Monitoramento iniciado automaticamente');
 
-        // Inicia polling de respostas do WhatsApp
-        console.log('[Desmarcação] 📱 Iniciando polling de respostas WhatsApp...');
-        setInterval(checkWhatsAppResponses, 1000);
-
     } catch (error) {
         console.error('[Desmarcação] ❌ Erro ao iniciar monitoramento automático:', error);
         if (elements.monitoringIndicator) {
@@ -201,262 +203,54 @@ async function autoStartMonitoring() {
 }
 
 /**
- * Inicia polling de respostas do WhatsApp
+ * Processa uma resposta do Chat Próprio e atualiza o status da desmarcação
+ * As respostas são atualizadas diretamente no SQLite via /api/chat-proprio/acao-resposta
+ * Esta função é chamada apenas para atualização local da UI
  */
-function startResponsePolling() {
-    // Para polling anterior, se existir
-    if (state.responsePollingInterval) {
-        clearInterval(state.responsePollingInterval);
+function processChatProprioResponse(desmarcacaoId, tipoDesmarcacao) {
+    if (!desmarcacaoId || !tipoDesmarcacao) {
+        console.warn('[Desmarcação] ⚠️ Resposta inválida - faltando ID ou tipo');
+        return;
     }
 
-    console.log('[Desmarcação] 🔄 Iniciando polling de respostas do WhatsApp...');
+    // Busca desmarcação pelo ID
+    const desmarcacao = state.desmarcacoes.find(d => d.id === desmarcacaoId);
 
-    // Verifica imediatamente
-    checkWhatsAppResponses();
-
-    // Verifica a cada 1 segundo (tempo real)
-    state.responsePollingInterval = setInterval(() => {
-        checkWhatsAppResponses();
-    }, 1000);
-}
-
-/**
- * Para polling de respostas
- */
-function stopResponsePolling() {
-    if (state.responsePollingInterval) {
-        clearInterval(state.responsePollingInterval);
-        state.responsePollingInterval = null;
-        console.log('[Desmarcação] ⏹️ Polling de respostas parado');
-    }
-}
-
-/**
- * Verifica se há novas respostas do WhatsApp
- */
-async function checkWhatsAppResponses() {
-    try {
-        const response = await fetch(`${CONFIG.WHATSAPP_BACKEND}/api/whatsapp/responses`);
-        const data = await response.json();
-
-        if (data.success && data.responses && data.responses.length > 0) {
-            console.log(`[Desmarcação] 📩 ${data.responses.length} novas respostas recebidas`);
-            await processWhatsAppResponses(data.responses);
-        }
-    } catch (error) {
-        console.error('[Desmarcação] ❌ Erro ao verificar respostas do WhatsApp:', error);
-    }
-}
-
-/**
- * Processa respostas do WhatsApp e atualiza status das desmarcações
- */
-async function processWhatsAppResponses(responses) {
-    let updated = 0;
-
-    for (const response of responses) {
-        const { confirmacaoId, contexto, tipoDesmarcacao, status, timestamp } = response;
-
-        console.log('[Desmarcação] 🔍 Resposta recebida:', {
-            confirmacaoId,
-            contexto,
-            tipoDesmarcacao,
-            status
-        });
-
-        // 1️⃣ Validação: apenas respostas de desmarcação
-        if (contexto !== 'desmarcacao') {
-            console.log('[Desmarcação] ⏭️ Ignorando resposta (contexto não é desmarcação)');
-            continue;
-        }
-
-        // 2️⃣ Se tem ID único, usa busca direta (método novo)
-        if (confirmacaoId) {
-            console.log('[Desmarcação] 🆔 Usando busca por ID único:', confirmacaoId);
-
-            const desmarcacao = state.desmarcacoes.find(d => d.id === confirmacaoId);
-
-            if (!desmarcacao) {
-                console.warn('[Desmarcação] ⚠️ Desmarcação não encontrada:', confirmacaoId);
-
-                // Verifica se está na aba errada
-                if (contexto === 'confirmacao') {
-                    console.log('[Desmarcação] ℹ️ Resposta é de confirmação, será processada na outra aba');
-                } else {
-                    console.error('[Desmarcação] ❌ ERRO: Desmarcação não existe no state!');
-                }
-
-                continue;
-            }
-
-            // 3️⃣ Validação cruzada de segurança
-            if (desmarcacao.contexto !== contexto) {
-                console.error('[Desmarcação] ❌ ERRO DE SEGURANÇA: Contexto não corresponde!', {
-                    esperado: desmarcacao.contexto,
-                    recebido: contexto,
-                    confirmacaoId
-                });
-
-                Toast.error(
-                    'ERRO DE CLASSIFICAÇÃO',
-                    `Contexto inválido para desmarcação ${confirmacaoId}. Contate o suporte.`,
-                    10000
-                );
-
-                continue;
-            }
-
-            // 4️⃣ Valida status compatível
-            const statusValidosDesmarcacao = ['reagendamento', 'sem_reagendamento', 'paciente_solicitou'];
-            if (!statusValidosDesmarcacao.includes(tipoDesmarcacao)) {
-                console.error('[Desmarcação] ❌ ERRO: Status inválido:', tipoDesmarcacao);
-
-                Toast.error(
-                    'ERRO DE STATUS',
-                    `Status "${tipoDesmarcacao}" não é válido para desmarcação.`,
-                    10000
-                );
-
-                continue;
-            }
-
-            // 5️⃣ Atualiza status (100% seguro)
-            const statusAnterior = desmarcacao.status;
-
-            if (statusAnterior !== tipoDesmarcacao) {
-                console.log(`[Desmarcação] 📝 Atualizando status: ${desmarcacao.consultaNumero} → ${tipoDesmarcacao}`);
-
-                try {
-                    // Mapeia status de volta para botão ID (nova ordem: 1=reagendamento, 2=paciente, 3=sem)
-                    const botaoIdMap = {
-                        'reagendamento': '1',
-                        'paciente_solicitou': '2',
-                        'sem_reagendamento': '3'
-                    };
-
-                    const botaoId = botaoIdMap[tipoDesmarcacao];
-                    DesmarcacaoService.registerResponse(desmarcacao.id, botaoId);
-
-                    // Atualiza no estado local (status E tipoDesmarcacao)
-                    desmarcacao.status = tipoDesmarcacao;
-                    desmarcacao.tipoDesmarcacao = tipoDesmarcacao; // ✅ Badge depende deste campo
-                    desmarcacao.respostaEm = new Date();
-                    desmarcacao.atualizadoEm = new Date();
-
-                    updated++;
-
-                    console.log('[Desmarcação] ✅ Status atualizado:', {
-                        confirmacaoId,
-                        paciente: desmarcacao.nomePaciente,
-                        statusAnterior,
-                        statusNovo: tipoDesmarcacao
-                    });
-
-                    // ✅ CRIA BADGE VERMELHO quando paciente solicita reagendamento
-                    if (tipoDesmarcacao === 'reagendamento') {
-                        try {
-                            const telefone = desmarcacao.telefones?.[0]?.telefone;
-                            await BadgeManager.processDesmarcacaoResponse(desmarcacao, 'reagendamento', telefone);
-                            console.log('[Desmarcação] 🔴 Badge REAGENDAR criado para consulta', desmarcacao.consultaNumero);
-                        } catch (error) {
-                            console.error('[Desmarcação] Erro ao criar badge:', error);
-                        }
-                    }
-
-                } catch (error) {
-                    console.error(`[Desmarcação] ❌ Erro ao atualizar status:`, error);
-                }
-            } else {
-                console.log('[Desmarcação] ℹ️ Status já está atualizado');
-            }
-
-        } else {
-            // 6️⃣ FALLBACK: Busca por telefone (método legado - compatibilidade)
-            console.log('[Desmarcação] ⚠️ Resposta sem ID único, usando método legado (telefone)');
-
-            if (!response.telefone || !tipoDesmarcacao) {
-                console.log('[Desmarcação] ⏭️ Ignorando resposta legada incompleta');
-                continue;
-            }
-
-            // Extrai apenas os números do telefone (remove @c.us, +, etc)
-            const telefoneNumeros = response.telefone.replace(/\D/g, '');
-            console.log('[Desmarcação] 📞 Telefone da resposta (só números):', telefoneNumeros);
-
-            // Procura desmarcação correspondente pelo telefone
-            const desmarcacao = state.desmarcacoes.find(d => {
-                // Verifica se algum dos telefones da desmarcação corresponde
-                const match = d.telefones.some(t => {
-                    const telefoneDesmarNumeros = t.telefone.replace(/\D/g, '');
-                    const corresponde = telefoneDesmarNumeros === telefoneNumeros ||
-                                       telefoneDesmarNumeros.endsWith(telefoneNumeros) ||
-                                       telefoneNumeros.endsWith(telefoneDesmarNumeros);
-                    return corresponde;
-                });
-                return match;
-            });
-
-            if (desmarcacao) {
-                console.log('[Desmarcação] ✅ Desmarcação encontrada (legado):', desmarcacao.consultaNumero);
-
-                // Mapeia tipoDesmarcacao para status
-                const statusMap = {
-                    'reagendamento': 'reagendamento',
-                    'sem_reagendamento': 'sem_reagendamento',
-                    'paciente_solicitou': 'paciente_solicitou'
-                };
-
-                const novoStatus = statusMap[tipoDesmarcacao];
-
-                if (novoStatus && desmarcacao.status !== novoStatus) {
-                    console.log(`[Desmarcação] 📝 Atualizando status (legado): ${desmarcacao.consultaNumero} → ${novoStatus}`);
-
-                    try {
-                        const botaoIdMap = {
-                            'reagendamento': '1',
-                            'paciente_solicitou': '2',
-                            'sem_reagendamento': '3'
-                        };
-
-                        const botaoId = botaoIdMap[novoStatus];
-                        DesmarcacaoService.registerResponse(desmarcacao.id, botaoId);
-
-                        desmarcacao.status = novoStatus;
-                        desmarcacao.tipoDesmarcacao = novoStatus; // ✅ Badge depende deste campo
-                        desmarcacao.respostaEm = new Date();
-                        desmarcacao.atualizadoEm = new Date();
-
-                        updated++;
-
-                        console.log(`[Desmarcação] ✅ Status atualizado (legado) para consulta ${desmarcacao.consultaNumero}`);
-
-                    } catch (error) {
-                        console.error(`[Desmarcação] ❌ Erro ao atualizar status (legado):`, error);
-                    }
-                } else if (!novoStatus) {
-                    console.log('[Desmarcação] ⚠️ Novo status inválido:', tipoDesmarcacao);
-                } else {
-                    console.log('[Desmarcação] ℹ️ Status já está atualizado');
-                }
-            } else {
-                console.log(`[Desmarcação] ⚠️ Desmarcação não encontrada para telefone ${telefoneNumeros}`);
-            }
-        }
+    if (!desmarcacao) {
+        console.warn('[Desmarcação] ⚠️ Desmarcação não encontrada:', desmarcacaoId);
+        return;
     }
 
-    if (updated > 0) {
-        console.log(`[Desmarcação] ✅ ${updated} desmarcações atualizadas`);
+    // Atualiza status local
+    const statusAnterior = desmarcacao.status;
+    desmarcacao.status = tipoDesmarcacao;
+    desmarcacao.tipoDesmarcacao = tipoDesmarcacao;
+    desmarcacao.respostaEm = new Date();
+    desmarcacao.atualizadoEm = new Date();
 
-        // Salva no localStorage
-        saveDesmarcacoesToStorage();
+    console.log('[Desmarcação] ✅ Status atualizado via Chat Próprio:', {
+        desmarcacaoId,
+        paciente: desmarcacao.nomePaciente,
+        statusAnterior,
+        statusNovo: tipoDesmarcacao
+    });
 
-        // Atualiza interface
-        renderDesmarcacoes();
-        updateStats();
+    // Atualiza UI
+    renderDesmarcacoes();
+    updateStats();
 
-        // Mostra toast de sucesso
-        Toast.success('Status atualizado!', `${updated} resposta(s) processada(s)`, 3000);
-    }
+    // Notifica
+    const statusLabel = {
+        'reagendamento': 'Quer reagendar',
+        'sem_reagendamento': 'Sem reagendamento',
+        'paciente_solicitou': 'Paciente solicitou'
+    };
+
+    Toast.info(
+        'Resposta recebida!',
+        `${desmarcacao.nomePaciente}: ${statusLabel[tipoDesmarcacao] || tipoDesmarcacao}`,
+        4000
+    );
 }
 
 /**
@@ -511,7 +305,7 @@ async function loadDesmarcacoesFromSQLite() {
                 mensagemEnviada: d.mensagem_enviada === 1 || d.mensagem_enviada === '1',
                 enviarMensagem: d.enviar_mensagem === 1 || d.enviar_mensagem === '1',
                 dataEnvio: d.data_envio,
-                whatsappMessageId: d.whatsapp_message_id,
+                chatMessageId: d.chat_message_id || d.whatsapp_message_id, // Suporta ambos para migração
                 dataDesmarcacao: d.data_desmarcacao,
                 dataDesmarcacaoFormatada: d.data_desmarcacao ? new Date(d.data_desmarcacao).toLocaleString('pt-BR', {
                     day: '2-digit',
@@ -541,13 +335,11 @@ async function loadDesmarcacoesFromSQLite() {
                     telefone: d.telefone,
                     telefoneFormatado: d.telefone_formatado || PhoneNormalizer.formatForDisplay(d.telefone),
                     telefoneType: 'mobile',
-                    chatId: WhatsAppTemplates.formatWhatsAppChatId(d.telefone),
                     prioridade: 1
                 }] : [{
                     telefone: null,
                     telefoneFormatado: '⚠️ SEM TELEFONE CADASTRADO',
                     telefoneType: 'none',
-                    chatId: null,
                     prioridade: 1
                 }],
                 status: d.status || null  // Status da resposta do paciente
@@ -893,7 +685,7 @@ async function handleNewDesmarcacoes(newDesmarcacoes) {
     });
 
     // ✅ VINCULAÇÃO: Verifica se desmarcação veio da aba Confirmação
-    // Se paciente disse "Não poderei comparecer" via WhatsApp, atualiza badge vermelho → verde
+    // Se paciente disse "Não poderei comparecer" via Chat Próprio, atualiza badge vermelho → verde
     console.log('[Desmarcação] Verificando vinculação com aba Confirmação...');
     for (const desmarcacao of reallyNew) {
         try {
@@ -1079,8 +871,8 @@ function renderDesmarcacaoCard(desmarcacao) {
             </div>
 
             <div class="appointment-details">
-                <span>📅 ${formatWhatsAppToHTML(desmarcacao.dataHoraFormatada)}</span>
-                <span class="especialidade-text" title="${desmarcacao.especialidade}">🏥 ${formatWhatsAppToHTML(desmarcacao.especialidade)}</span>
+                <span>📅 ${formatMarkdownToHTML(desmarcacao.dataHoraFormatada)}</span>
+                <span class="especialidade-text" title="${desmarcacao.especialidade}">🏥 ${formatMarkdownToHTML(desmarcacao.especialidade)}</span>
                 <span>${telefoneWarning}📞 ${telefoneFormatado}</span>
                 <span>🔢 Nr: ${desmarcacao.consultaNumero}</span>
                 <span>🗓️ Desmarcação: ${dataDesmarcacao}</span>
@@ -1228,11 +1020,11 @@ window.showDesmarcacaoDetails = function(desmarcacaoId) {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Especialidade:</span>
-                        <span class="detail-value">${formatWhatsAppToHTML(desmarcacao.especialidade)}</span>
+                        <span class="detail-value">${formatMarkdownToHTML(desmarcacao.especialidade)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Data/Hora:</span>
-                        <span class="detail-value">${formatWhatsAppToHTML(desmarcacao.dataHoraFormatada)}</span>
+                        <span class="detail-value">${formatMarkdownToHTML(desmarcacao.dataHoraFormatada)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Profissional:</span>

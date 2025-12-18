@@ -26,14 +26,19 @@ if not exist "node_modules" (
     echo.
 )
 
-echo Iniciando servidor...
 echo.
+echo Iniciando servidor...
 start "Meu HMASP - Servidor" cmd /k "node server.js"
 
 echo Aguardando servidor iniciar...
 timeout /t 3 /nobreak >nul
 
-echo Abrindo navegador...
+echo Abrindo App Mobile (Paciente)...
+start http://localhost:3000/mobile
+
+timeout /t 1 /nobreak >nul
+
+echo Abrindo Interface do Operador (Desktop)...
 start http://localhost:3000
 
 echo.
@@ -41,16 +46,23 @@ echo ========================================
 echo   SERVIDOR INICIADO!
 echo ========================================
 echo.
-echo Interface do Operador: http://localhost:3000
+echo URLs disponiveis:
 echo.
-echo Abas disponiveis:
-echo   - Chat (conversar com pacientes)
-echo   - Confirmacao de Presenca
-echo   - Desmarcacao de Consultas
-echo   - Notificacao aos Faltantes
-echo   - Configuracoes
+echo   App Mobile (Paciente):
+echo     http://localhost:3000/mobile
+echo     - Login com CPF e Prontuario
+echo     - Chat com a Central de Atendimento
+echo     - Confirmacao de presenca
+echo     - Consultas agendadas
 echo.
-echo Para parar: Feche a janela do servidor
+echo   Interface do Operador (Desktop):
+echo     http://localhost:3000
+echo     - Chat com pacientes
+echo     - Gerenciamento de confirmacoes
+echo     - Desmarcacao de consultas
+echo     - Configuracoes
+echo.
+echo Para parar: Feche a janela "Meu HMASP - Servidor"
 echo.
 echo ========================================
 echo.

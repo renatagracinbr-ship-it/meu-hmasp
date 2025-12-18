@@ -5,16 +5,17 @@
  * - Monitorar consultas desmarcadas em tempo real
  * - Gerenciar lista de consultas desmarcadas
  * - Preparar dados para exibição
- * - Integrar AGHUse + WhatsApp
+ * - Integrar AGHUse + Chat Próprio (Push Notifications)
  */
 
 import * as AghuseService from './aghuse.service.js';
-import * as WhatsAppTemplates from './whatsappTemplates.service.js';
-import * as WhatsAppQueue from './whatsappQueue.service.js';
 import * as MonitoramentoLog from './monitoramentoLog.service.js';
 import * as DesmarcacaoLinker from './desmarcacaoLinker.service.js';
 import { PhoneNormalizer } from '../utils/phoneNormalizer.js';
 import { generateConfirmacaoId } from '../utils/idGenerator.js';
+
+// URL base da API do servidor
+const API_BASE = window.API_BASE_URL || 'http://localhost:3000';
 
 // Estado do monitoramento
 let monitoringInterval = null;
@@ -151,20 +152,16 @@ export function prepareDesmarcacao(appointment, customId = null) {
     // Usa ID customizado ou gera novo ID único
     const desmarcacaoId = customId || generateConfirmacaoId(appointment.consultaNumero, 'desmarcacao');
 
-    // Prepara telefones
+    // Prepara telefones para exibição
     let telefones = [];
 
     if (appointment.telefones && appointment.telefones.length > 0) {
         telefones = appointment.telefones.map((telefone, index) => {
-            // Formata ID do chat WhatsApp
-            const chatId = WhatsAppTemplates.formatWhatsAppChatId(telefone.normalized);
-
             return {
                 telefone: telefone.normalized,
                 telefoneFormatado: PhoneNormalizer.formatForDisplay(telefone.normalized),
                 telefoneType: telefone.type,
                 telefoneOrigem: telefone.original,
-                chatId: chatId,
                 prioridade: index + 1
             };
         });
@@ -175,7 +172,6 @@ export function prepareDesmarcacao(appointment, customId = null) {
             telefoneFormatado: '⚠️ SEM TELEFONE CADASTRADO',
             telefoneType: 'none',
             telefoneOrigem: null,
-            chatId: null,
             prioridade: 1
         }];
     }
@@ -226,13 +222,13 @@ export function prepareDesmarcacao(appointment, customId = null) {
 }
 
 /**
- * Envia mensagem sobre desmarcação
+ * Envia mensagem sobre desmarcação via Chat Próprio (Push Notification + Chat)
  *
  * IMPORTANTE: Verifica flag shouldSendMessage antes de enviar
  * Se desmarcação veio da aba Confirmação (badge DESMARCAR), NÃO envia mensagem
  *
  * @param {Object} desmarcacao - Dados da desmarcação
- * @param {number} telefoneIndex - Índice do telefone (0 = principal)
+ * @param {number} telefoneIndex - Índice do telefone (ignorado no Chat Próprio)
  * @returns {Promise<Object>} - Resultado do envio
  */
 export async function sendDesmarcacaoMessage(desmarcacao, telefoneIndex = 0) {
@@ -249,85 +245,77 @@ export async function sendDesmarcacaoMessage(desmarcacao, telefoneIndex = 0) {
         };
     }
 
-    const telefone = desmarcacao.telefones[telefoneIndex];
-
-    if (!telefone) {
-        console.warn(`[Desmarcação] ⚠️ Telefone não encontrado no índice ${telefoneIndex}`);
+    // No Chat Próprio, não dependemos de telefone - usamos prontuário
+    if (!desmarcacao.prontuario) {
+        console.warn(`[Desmarcação] ⚠️ Consulta ${desmarcacao.consultaNumero} sem prontuário`);
         return {
             success: false,
             skipped: true,
-            reason: 'telefone_nao_encontrado',
-            message: 'Telefone não encontrado',
+            reason: 'sem_prontuario',
+            message: 'Consulta sem prontuário',
             timestamp: new Date().toISOString()
         };
     }
 
-    if (!telefone.telefone) {
-        console.warn(`[Desmarcação] ⚠️ Paciente ${desmarcacao.nomePaciente} não possui telefone cadastrado`);
-        return {
-            success: false,
-            skipped: true,
-            reason: 'sem_telefone',
-            message: 'Paciente não possui telefone cadastrado',
-            timestamp: new Date().toISOString()
-        };
-    }
-
-    try {
-        // Gera mensagem usando template profissional
-        const mensagem = WhatsAppTemplates.generateMessage('desmarcacao_notificacao', {
-            nomePaciente: desmarcacao.nomePaciente,
+    const payload = {
+        prontuario: desmarcacao.prontuario,
+        pacienteNome: desmarcacao.nomePaciente,
+        consultaId: desmarcacao.consultaNumero,
+        consultaInfo: {
             especialidade: desmarcacao.especialidade,
             dataHora: desmarcacao.dataHoraFormatada,
-            medico: desmarcacao.profissional
+            profissional: desmarcacao.profissional,
+            local: desmarcacao.local
+        }
+    };
+
+    console.log(`[Desmarcação] Enviando via Chat Próprio: /api/push/notify-desmarcacao`);
+    console.log(`[Desmarcação] Paciente: ${desmarcacao.nomePaciente}, Consulta: ${desmarcacao.consultaNumero}`);
+
+    try {
+        const response = await fetch(`${API_BASE}/api/push/notify-desmarcacao`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
 
-        // Adiciona à fila com proteção anti-banimento
-        const queueId = await WhatsAppQueue.addToQueue({
-            chatId: telefone.chatId,
-            texto: mensagem.texto,
-            botoes: mensagem.botoes,
-            metadata: {
-                confirmacaoId: desmarcacao.id,  // ID único para rastreamento (mesmo campo para unificar)
-                contexto: desmarcacao.contexto || 'desmarcacao',  // 'desmarcacao' (garantido com fallback)
-                consultaNumero: desmarcacao.consultaNumero,
-                paciente: desmarcacao.nomePaciente,
-                telefone: telefone.telefone,
-                type: 'desmarcacao_notificacao'
-            }
-        });
+        const result = await response.json();
 
-        console.log(`[Desmarcação] ✅ Mensagem adicionada à fila: ${queueId}`);
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}`);
+        }
+
+        console.log(`[Desmarcação] ✅ Mensagem enviada via Chat Próprio`);
 
         desmarcacao.atualizadoEm = new Date();
         desmarcacoesStore.set(desmarcacao.id, desmarcacao);
 
-        // 🔧 FIX: Marca mensagem como enviada no SQLite
+        // Marca mensagem como enviada no banco
         try {
-            const ConsultasSQLite = await import('./consultasSQLite.service.js');
-            // Usa API específica para desmarcações
-            const response = await fetch(`${import.meta.env.VITE_DATABASE_BACKEND || 'http://localhost:3001'}/api/desmarcacoes/ativas/${desmarcacao.id}/mensagem-enviada`, {
+            const dbBackend = import.meta.env.VITE_DATABASE_BACKEND || 'http://localhost:3001';
+            const dbResponse = await fetch(`${dbBackend}/api/desmarcacoes/ativas/${desmarcacao.id}/mensagem-enviada`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ whatsappMessageId: queueId })
+                body: JSON.stringify({ chatMessageId: `chat-${Date.now()}` })
             });
-            if (response.ok) {
+            if (dbResponse.ok) {
                 console.log(`[Desmarcação] ✅ Flag mensagem_enviada atualizada no banco`);
             }
         } catch (error) {
             console.error('[Desmarcação] ⚠️ Erro ao atualizar flag mensagem_enviada:', error);
-            // Não quebra o fluxo - mensagem foi adicionada à fila com sucesso
         }
 
         return {
             success: true,
             skipped: false,
-            queueId: queueId,
+            method: 'chat_proprio',
+            pushSent: result.pushSent || false,
+            chatMessageSent: result.chatMessageSent || false,
             timestamp: new Date().toISOString()
         };
 
     } catch (error) {
-        console.error('[Desmarcação] Erro ao enviar mensagem:', error);
+        console.error('[Desmarcação] ❌ Erro ao enviar via Chat Próprio:', error);
         throw error;
     }
 }

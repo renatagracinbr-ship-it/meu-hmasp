@@ -1,14 +1,13 @@
 /**
  * ============================================================
- * COMPONENTE: Configuração de Mensagens WhatsApp
+ * COMPONENTE: Configuração de Mensagens
  * ============================================================
  * Interface admin para gerenciar mensagens centralizadas
  */
 
 import CONFIG from '../config/backend.config.js';
-import { reloadTemplates } from '../services/whatsappTemplates.service.js';
 
-const API_BASE = CONFIG.WHATSAPP_BACKEND;
+const API_BASE = CONFIG.MAIN_BACKEND || CONFIG.WHATSAPP_BACKEND;
 
 // Estado do componente
 const state = {
@@ -86,8 +85,8 @@ function renderizarInterface() {
         <div class="mensagens-config">
             <!-- Cabeçalho com Filtros -->
             <div class="mensagens-header">
-                <h3>⚙️ Configuração de Mensagens WhatsApp</h3>
-                <p class="mensagens-subtitle">Gerencie todas as mensagens enviadas automaticamente pelo sistema</p>
+                <h3>⚙️ Configuração de Mensagens - Chat Próprio</h3>
+                <p class="mensagens-subtitle">Gerencie todas as mensagens enviadas automaticamente via chat do app</p>
 
                 <div class="mensagens-filtros">
                     <select id="filtro-fluxo" class="form-select">
@@ -443,13 +442,8 @@ window.salvarMensagem = async function() {
         if (data.success) {
             mostrarNotificacao('Mensagem atualizada com sucesso!', 'success');
 
-            // Recarrega cache dos templates para que as mensagens enviadas usem o novo texto
-            try {
-                await reloadTemplates();
-                console.log('[ConfigMensagens] ✅ Cache de templates recarregado');
-            } catch (e) {
-                console.warn('[ConfigMensagens] ⚠️ Falha ao recarregar cache de templates:', e);
-            }
+            // No Chat Próprio, os templates são gerenciados pelo backend
+            console.log('[ConfigMensagens] ✅ Mensagem atualizada (templates gerenciados pelo backend)');
 
             fecharModalEdicao();
             await carregarMensagens();

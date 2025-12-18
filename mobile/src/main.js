@@ -356,6 +356,64 @@ function loginSuccess(paciente) {
 
     // Inicializa chat
     initializeChatConversa();
+
+    // Inicializa Push Notifications
+    initializePushNotifications(paciente);
+}
+
+/**
+ * Inicializa Push Notifications
+ */
+async function initializePushNotifications(paciente) {
+    try {
+        // Importa o módulo de push notifications dinamicamente
+        const pushModule = await import('./services/pushNotifications.js');
+
+        // Inicializa o serviço
+        const initialized = await pushModule.initPushNotifications();
+
+        if (initialized) {
+            // Solicita permissão e obtém token
+            const token = await pushModule.requestPermissionAndToken();
+
+            if (token) {
+                // Registra no servidor
+                await pushModule.registerTokenOnServer(
+                    token,
+                    paciente.prontuario,
+                    paciente.id
+                );
+
+                console.log('[App] Push notifications ativadas');
+            }
+
+            // Define callback para notificações
+            pushModule.setOnNotificationCallback((payload) => {
+                console.log('[App] Notificação recebida:', payload);
+                handleNotificationReceived(payload);
+            });
+        }
+    } catch (error) {
+        console.log('[App] Push notifications não disponíveis:', error.message);
+    }
+}
+
+/**
+ * Handler para notificações recebidas
+ */
+function handleNotificationReceived(payload) {
+    const { data } = payload;
+
+    // Atualiza dados baseado no tipo de notificação
+    if (data?.type === 'chat_message') {
+        // Recarrega mensagens do chat
+        if (state.conversaId) {
+            loadMessages();
+        }
+    } else if (data?.type === 'consulta_update') {
+        // Recarrega lista de consultas
+        loadConsultas();
+    }
 }
 
 /**
@@ -808,6 +866,15 @@ async function sendMessage() {
 
 /**
  * Adiciona mensagem na UI
+ * Suporta mensagens simples e mensagens com botões de ação
+ *
+ * @param {Object} message - Objeto da mensagem
+ * @param {string} message.text - Texto da mensagem
+ * @param {boolean} message.fromMe - Se é do paciente
+ * @param {Date} message.timestamp - Data/hora da mensagem
+ * @param {Array} message.buttons - Array de botões [{id, label, action}]
+ * @param {string} message.messageType - Tipo: 'text', 'action_buttons', 'action_response'
+ * @param {Object} message.metadata - Metadados adicionais (consultaId, etc)
  */
 function addMessageToUI(message) {
     // Remove mensagem de boas vindas se existir
@@ -817,16 +884,52 @@ function addMessageToUI(message) {
     const div = document.createElement('div');
     div.className = `message ${message.fromMe ? 'sent' : 'received'}`;
 
+    // Se tem ID, adiciona para referência
+    if (message.id) {
+        div.dataset.messageId = message.id;
+    }
+
     const time = message.timestamp instanceof Date
         ? message.timestamp.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
         : '';
 
-    div.innerHTML = `
-        <div class="message-bubble">
-            <div class="message-text">${escapeHtml(message.text)}</div>
-            <div class="message-time">${time}</div>
-        </div>
-    `;
+    // Verifica se é mensagem com botões de ação
+    if (message.buttons && message.buttons.length > 0 && !message.fromMe) {
+        div.innerHTML = `
+            <div class="message-bubble message-with-buttons">
+                <div class="message-text">${formatMessageText(message.text)}</div>
+                <div class="message-buttons">
+                    ${message.buttons.map(btn => `
+                        <button class="message-action-btn ${btn.style || ''}"
+                                data-action="${btn.action}"
+                                data-message-id="${message.id || ''}"
+                                data-consulta-id="${message.metadata?.consultaId || ''}"
+                                data-btn-id="${btn.id || ''}">
+                            ${btn.icon ? `<span class="btn-icon">${btn.icon}</span>` : ''}
+                            <span class="btn-label">${escapeHtml(btn.label)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+
+        // Adiciona event listeners aos botões
+        setTimeout(() => {
+            const buttons = div.querySelectorAll('.message-action-btn');
+            buttons.forEach(btn => {
+                btn.addEventListener('click', handleMessageButtonClick);
+            });
+        }, 0);
+    } else {
+        // Mensagem simples de texto
+        div.innerHTML = `
+            <div class="message-bubble">
+                <div class="message-text">${formatMessageText(message.text)}</div>
+                <div class="message-time">${time}</div>
+            </div>
+        `;
+    }
 
     elements.chatMessages.appendChild(div);
 
@@ -835,7 +938,129 @@ function addMessageToUI(message) {
 }
 
 /**
+ * Handler para clique nos botões de ação das mensagens
+ */
+async function handleMessageButtonClick(event) {
+    const btn = event.currentTarget;
+    const action = btn.dataset.action;
+    const messageId = btn.dataset.messageId;
+    const consultaId = btn.dataset.consultaId;
+    const btnId = btn.dataset.btnId;
+
+    console.log(`[Chat] Botão clicado: action=${action}, consultaId=${consultaId}`);
+
+    // Desabilita todos os botões desta mensagem
+    const messageDiv = btn.closest('.message');
+    const allButtons = messageDiv.querySelectorAll('.message-action-btn');
+    allButtons.forEach(b => {
+        b.disabled = true;
+        b.classList.add('btn-disabled');
+    });
+
+    // Marca o botão clicado
+    btn.classList.add('btn-selected');
+
+    try {
+        // Envia resposta para o servidor
+        const response = await sendActionResponse(action, consultaId, messageId);
+
+        if (response.success) {
+            // Remove os botões e mostra confirmação
+            const buttonsDiv = messageDiv.querySelector('.message-buttons');
+            if (buttonsDiv) {
+                buttonsDiv.innerHTML = `
+                    <div class="action-confirmed">
+                        <span class="confirm-icon">✓</span>
+                        <span class="confirm-text">${getActionConfirmText(action)}</span>
+                    </div>
+                `;
+            }
+
+            // Adiciona mensagem de resposta do paciente
+            addMessageToUI({
+                text: getActionResponseText(action),
+                fromMe: true,
+                timestamp: new Date()
+            });
+        } else {
+            // Erro - reabilita botões
+            allButtons.forEach(b => {
+                b.disabled = false;
+                b.classList.remove('btn-disabled');
+            });
+            btn.classList.remove('btn-selected');
+            alert('Erro ao enviar resposta. Tente novamente.');
+        }
+    } catch (error) {
+        console.error('[Chat] Erro ao processar ação:', error);
+        allButtons.forEach(b => {
+            b.disabled = false;
+            b.classList.remove('btn-disabled');
+        });
+        btn.classList.remove('btn-selected');
+        alert('Erro de conexão. Tente novamente.');
+    }
+}
+
+/**
+ * Envia resposta de ação para o servidor
+ */
+async function sendActionResponse(action, consultaId, messageId) {
+    try {
+        const response = await fetch(`${API_BASE}/api/chat-proprio/acao-resposta`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                conversaId: state.conversaId,
+                pacienteId: state.currentUser?.id,
+                prontuario: state.currentUser?.prontuario,
+                action: action,
+                consultaId: consultaId,
+                messageId: messageId,
+                timestamp: new Date().toISOString()
+            })
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error('[Chat] Erro ao enviar resposta de ação:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Retorna texto de confirmação baseado na ação
+ */
+function getActionConfirmText(action) {
+    const texts = {
+        'confirmar': 'Presença confirmada',
+        'desmarcar': 'Desmarcação solicitada',
+        'reagendar': 'Reagendamento solicitado',
+        'paciente_desmarcou': 'Informação registrada',
+        'sem_reagendar': 'Informação registrada',
+        'nao_agendei': 'Informação registrada'
+    };
+    return texts[action] || 'Resposta enviada';
+}
+
+/**
+ * Retorna texto da resposta do paciente baseado na ação
+ */
+function getActionResponseText(action) {
+    const texts = {
+        'confirmar': 'Confirmo minha presença na consulta.',
+        'desmarcar': 'Gostaria de desmarcar esta consulta.',
+        'reagendar': 'Gostaria de reagendar esta consulta.',
+        'paciente_desmarcou': 'Fui eu que desmarcou esta consulta.',
+        'sem_reagendar': 'Não quero reagendar, obrigado.',
+        'nao_agendei': 'Não fui eu quem agendou esta consulta.'
+    };
+    return texts[action] || 'Resposta enviada.';
+}
+
+/**
  * Carrega mensagens do servidor
+ * Suporta mensagens simples e mensagens com botões de ação
  */
 async function loadMessages() {
     if (!state.conversaId) return;
@@ -857,11 +1082,33 @@ async function loadMessages() {
 
             // Adiciona mensagens
             data.mensagens.forEach(msg => {
+                // Parseia metadata se existir (pode conter botões)
+                let metadata = null;
+                let buttons = null;
+
+                try {
+                    if (msg.metadata) {
+                        metadata = typeof msg.metadata === 'string'
+                            ? JSON.parse(msg.metadata)
+                            : msg.metadata;
+
+                        // Verifica se tem botões e se ainda não foi respondida
+                        if (metadata.buttons && !metadata.responded) {
+                            buttons = metadata.buttons;
+                        }
+                    }
+                } catch (e) {
+                    console.log('[Chat] Erro ao parsear metadata:', e);
+                }
+
                 addMessageToUI({
                     id: msg.id,
                     text: msg.conteudo,
                     fromMe: msg.remetente_tipo === 'paciente',
-                    timestamp: new Date(msg.created_at)
+                    timestamp: new Date(msg.created_at),
+                    buttons: buttons,
+                    metadata: metadata,
+                    messageType: msg.tipo || 'text'
                 });
 
                 // Atualiza ultimo timestamp
@@ -944,6 +1191,22 @@ async function loadConsultas() {
 }
 
 /**
+ * Obtém o dia da semana a partir de uma data no formato DD/MM/YYYY
+ */
+function getDiaSemana(dataFormatada) {
+    // Converte DD/MM/YYYY para objeto Date
+    const partes = dataFormatada.split('/');
+    const dia = parseInt(partes[0]);
+    const mes = parseInt(partes[1]) - 1; // Mês começa em 0
+    const ano = parseInt(partes[2]);
+
+    const data = new Date(ano, mes, dia);
+
+    const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    return diasSemana[data.getDay()];
+}
+
+/**
  * Renderiza consultas
  */
 function renderConsultas(consultas) {
@@ -956,10 +1219,13 @@ function renderConsultas(consultas) {
         const statusClass = getStatusClass(consulta.status);
         const statusLabel = getStatusLabel(consulta.status);
 
+        // Obtém o dia da semana a partir da data
+        const diaSemana = getDiaSemana(consulta.dataFormatada);
+
         card.innerHTML = `
             <div class="consulta-header">
                 <div>
-                    <div class="consulta-date">${consulta.dataFormatada}</div>
+                    <div class="consulta-date">${diaSemana}, ${consulta.dataFormatada}</div>
                     <div class="consulta-time">${consulta.horaFormatada}</div>
                 </div>
                 <span class="consulta-status ${statusClass}">${statusLabel}</span>
@@ -976,12 +1242,6 @@ function renderConsultas(consultas) {
                         <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
                     </svg>
                     <span>${consulta.profissional}</span>
-                </div>
-                <div class="consulta-detail">
-                    <svg viewBox="0 0 24 24" width="16" height="16">
-                        <path fill="currentColor" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-                    </svg>
-                    <span>${consulta.local || 'HMASP'}</span>
                 </div>
             </div>
             ${consulta.status === 'pendente' ? `
@@ -1026,7 +1286,6 @@ function renderMockConsultas() {
             horaFormatada: '09:30',
             especialidade: 'Cardiologia',
             profissional: 'Dr. Carlos Mendes',
-            local: 'Ambulatorio 1',
             status: 'pendente'
         },
         {
@@ -1035,7 +1294,6 @@ function renderMockConsultas() {
             horaFormatada: '14:00',
             especialidade: 'Ortopedia',
             profissional: 'Dra. Maria Santos',
-            local: 'Ambulatorio 2',
             status: 'confirmada'
         }
     ];
@@ -1208,6 +1466,31 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Formata texto com markdown para HTML
+ * Converte *texto* para <strong>texto</strong>
+ * Converte _texto_ para <em>texto</em>
+ * Preserva quebras de linha como <br>
+ * Previne XSS escapando HTML primeiro
+ */
+function formatMessageText(text) {
+    if (!text) return '';
+
+    // Primeiro escapa todo HTML para prevenir XSS
+    let formatted = escapeHtml(text);
+
+    // Converte *texto* para <strong>texto</strong> (negrito)
+    formatted = formatted.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+
+    // Converte _texto_ para <em>texto</em> (itálico)
+    formatted = formatted.replace(/_(.*?)_/g, '<em>$1</em>');
+
+    // Converte quebras de linha para <br>
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    return formatted;
 }
 
 // Inicializa quando o DOM estiver pronto

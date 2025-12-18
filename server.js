@@ -1,6 +1,6 @@
 /**
- * Servidor HMASP Chat - WhatsApp + PostgreSQL
- * 100% Local - Ubuntu/VM - Sem dependências cloud
+ * Servidor HMASP - Chat Próprio + Push Notifications
+ * Comunicação com pacientes via App "Meu HMASP"
  */
 
 // Carrega variáveis de ambiente do arquivo .env
@@ -8,7 +8,6 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 const path = require('path');
 const auth = require('./server/auth');
@@ -16,23 +15,12 @@ const aghuse = require('./server/aghuse-server');
 const Database = require('better-sqlite3');
 const BadgesService = require('./server/database/badges.service');
 const ConsultasService = require('./server/database/consultas.service');
-const WhatsAppRespostasService = require('./server/database/whatsappRespostas.service');
-const MensagensWhatsApp = require('./server/database/mensagensWhatsApp.service');
 const ContatosService = require('./server/database/contatos.service');
 const ChatContextosService = require('./server/database/chatContextos.service');
 const ChatService = require('./server/database/chat.service');
+const MensagensWhatsApp = require('./server/database/mensagensWhatsApp.service');
 
-// ============================================================================
-// API OFICIAL DO WHATSAPP (META CLOUD API)
-// ============================================================================
-const WhatsAppOfficialAPI = require('./server/services/whatsappOfficialAPI.service');
-
-// Configuração: qual API usar
-// 'official' = API Oficial da Meta (Cloud API)
-// 'unofficial' = whatsapp-web.js (API não oficial)
-const WHATSAPP_API_MODE = process.env.WHATSAPP_API_MODE || 'unofficial';
-
-console.log(`[Config] Modo da API WhatsApp: ${WHATSAPP_API_MODE}`);
+console.log('[Config] Modo de comunicação: Chat Próprio + Push Notifications');
 
 // ============================================================================
 // NOVOS MÓDULOS - MELHORIAS DE QUALIDADE
@@ -221,109 +209,16 @@ app.use(express.static(__dirname));
 // Servir arquivos estáticos da pasta public (whatsapp-admin.html, etc)
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Servir frontend estático da pasta dist (interface principal)
-app.use(express.static(path.join(__dirname, 'dist')));
+// Servir app mobile (pacientes) - Firebase Hosting
+app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
 
-// Estado do WhatsApp
-let whatsappClient = null;
-let isReady = false;
-let qrCodeData = null;
-let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 10;
-let heartbeatInterval = null;
+// Servir frontend estático da pasta dist (interface do operador - intranet)
+app.use(express.static(path.join(__dirname, 'dist')));
 
 // Estado do servidor HTTP (para graceful shutdown)
 let httpServer = null;
 let isShuttingDown = false;
 
-// ============================================================================
-// FUNÇÃO AUXILIAR: Envio de Mensagens Centralizadas
-// ============================================================================
-
-/**
- * Envia mensagem usando o sistema centralizado
- * @param {Object} msg - Objeto de mensagem do WhatsApp
- * @param {string} codigo - Código da mensagem
- * @param {Object} variaveis - Variáveis para substituição (opcional)
- * @param {Object} dadosLog - Dados adicionais para log (opcional)
- * @returns {Promise<boolean>} - true se enviou com sucesso
- */
-async function enviarMensagemCentralizada(msg, codigo, variaveis = {}, dadosLog = {}) {
-    try {
-        // Renderiza mensagem
-        const textoMensagem = MensagensWhatsApp.renderMensagem(codigo, variaveis);
-
-        if (!textoMensagem) {
-            console.error(`[WhatsApp] ❌ Mensagem ${codigo} não encontrada`);
-            return false;
-        }
-
-        // Envia
-        await msg.reply(textoMensagem);
-
-        // Registra
-        MensagensWhatsApp.registrarEnvio({
-            codigo: codigo,
-            telefone: dadosLog.telefone || msg.from.replace('@c.us', ''),
-            confirmacaoId: dadosLog.confirmacaoId || null,
-            textoEnviado: textoMensagem,
-            variaveis: variaveis,
-            contexto: dadosLog.contexto || null,
-            status: 'enviado',
-            enviadoPor: dadosLog.enviadoPor || 'sistema'
-        });
-
-        console.log(`[WhatsApp] ✅ Mensagem ${codigo} enviada`);
-        return true;
-
-    } catch (error) {
-        console.error(`[WhatsApp] ❌ Erro ao enviar mensagem ${codigo}:`, error);
-
-        // Registra erro
-        MensagensWhatsApp.registrarEnvio({
-            codigo: codigo,
-            telefone: dadosLog.telefone || msg.from.replace('@c.us', ''),
-            textoEnviado: null,
-            variaveis: variaveis,
-            status: 'erro',
-            erro_detalhes: error.message
-        });
-
-        return false;
-    }
-}
-
-// Heartbeat para manter conexão ativa
-function startHeartbeat() {
-    if (heartbeatInterval) return; // Já está rodando
-
-    console.log('[WhatsApp] 💓 Iniciando heartbeat (a cada 30s)');
-    heartbeatInterval = setInterval(async () => {
-        if (!isReady || !whatsappClient) return;
-
-        try {
-            // Verifica se o cliente está realmente conectado
-            const state = await whatsappClient.getState();
-            if (state !== 'CONNECTED') {
-                console.log('[WhatsApp] ⚠️ Estado não conectado:', state);
-                isReady = false;
-            } else {
-                console.log('[WhatsApp] 💓 Heartbeat OK');
-            }
-        } catch (error) {
-            console.error('[WhatsApp] ❌ Erro no heartbeat:', error.message);
-            isReady = false;
-        }
-    }, 30000); // A cada 30 segundos
-}
-
-function stopHeartbeat() {
-    if (heartbeatInterval) {
-        console.log('[WhatsApp] Parando heartbeat');
-        clearInterval(heartbeatInterval);
-        heartbeatInterval = null;
-    }
-}
 
 // ============================================================================
 // AUTENTICAÇÃO - ENDPOINTS
@@ -3133,6 +3028,252 @@ app.get('/api/chat-proprio/nao-lidas', async (req, res) => {
     }
 });
 
+/**
+ * POST /api/chat-proprio/acao-resposta
+ * Processa resposta do paciente a uma mensagem com botões de ação
+ * (Marcação, Lembrete 72h, Desmarcação)
+ */
+app.post('/api/chat-proprio/acao-resposta', async (req, res) => {
+    try {
+        const {
+            conversaId,
+            pacienteId,
+            prontuario,
+            action,
+            consultaId,
+            messageId,
+            timestamp
+        } = req.body;
+
+        logger.info(`[Chat Ação] Resposta recebida: action=${action}, consultaId=${consultaId}, prontuario=${prontuario}`);
+
+        // Valida ação
+        const acoesValidas = ['confirmar', 'desmarcar', 'reagendar', 'paciente_desmarcou', 'sem_reagendar', 'nao_agendei'];
+        if (!acoesValidas.includes(action)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Ação inválida'
+            });
+        }
+
+        // Processa baseado na ação
+        let resultado = { success: true };
+
+        switch (action) {
+            case 'confirmar':
+                // Atualiza status da consulta para confirmada
+                if (consultaId) {
+                    ConsultasService.updateConsultaStatusByConfirmacaoId(consultaId, 'confirmed');
+                    logger.info(`[Chat Ação] Consulta ${consultaId} confirmada pelo paciente`);
+                }
+                resultado.message = 'Presença confirmada com sucesso!';
+                break;
+
+            case 'desmarcar':
+                // Atualiza status da consulta para declined (precisa de ação no AGHUse)
+                if (consultaId) {
+                    ConsultasService.updateConsultaStatusByConfirmacaoId(consultaId, 'declined');
+                    logger.info(`[Chat Ação] Consulta ${consultaId} marcada para desmarcação`);
+                }
+                resultado.message = 'Desmarcação solicitada. Um operador irá processá-la.';
+                break;
+
+            case 'reagendar':
+                // Atualiza status para reagendamento (desmarcação)
+                if (consultaId) {
+                    ConsultasService.updateDesmarcacaoStatus(consultaId, 'reagendamento', 'reagendamento');
+                    logger.info(`[Chat Ação] Desmarcação ${consultaId} - paciente quer reagendar`);
+                }
+                resultado.message = 'Reagendamento solicitado. Um operador entrará em contato.';
+                break;
+
+            case 'paciente_desmarcou':
+                // Paciente confirma que foi ele quem desmarcou
+                if (consultaId) {
+                    ConsultasService.updateDesmarcacaoStatus(consultaId, 'paciente_solicitou', 'paciente_solicitou');
+                    logger.info(`[Chat Ação] Desmarcação ${consultaId} - paciente solicitou`);
+                }
+                resultado.message = 'Informação registrada. Obrigado pelo retorno!';
+                break;
+
+            case 'sem_reagendar':
+                // Paciente não quer reagendar
+                if (consultaId) {
+                    ConsultasService.updateDesmarcacaoStatus(consultaId, 'sem_reagendamento', 'sem_reagendamento');
+                    logger.info(`[Chat Ação] Desmarcação ${consultaId} - sem reagendamento`);
+                }
+                resultado.message = 'Informação registrada. Obrigado pelo retorno!';
+                break;
+
+            case 'nao_agendei':
+                // Paciente informa que não foi ele quem agendou
+                if (consultaId) {
+                    ConsultasService.updateConsultaStatusByConfirmacaoId(consultaId, 'not_scheduled');
+                    logger.info(`[Chat Ação] Consulta ${consultaId} marcada como não agendada pelo paciente`);
+                }
+                resultado.message = 'Informação registrada. Um operador irá verificar.';
+                break;
+        }
+
+        // Atualiza metadata da mensagem original para indicar que foi respondida
+        if (messageId) {
+            try {
+                ChatService.atualizarMetadataMensagem(messageId, {
+                    responded: true,
+                    respondedAt: timestamp || new Date().toISOString(),
+                    respondedAction: action
+                });
+            } catch (e) {
+                logger.warn(`[Chat Ação] Erro ao atualizar metadata da mensagem: ${e.message}`);
+            }
+        }
+
+        // Adiciona mensagem de confirmação na conversa
+        if (conversaId) {
+            try {
+                ChatService.adicionarMensagem({
+                    conversaId: conversaId,
+                    conteudo: resultado.message,
+                    remetenteTipo: 'sistema',
+                    remetenteNome: 'Sistema',
+                    lido: false,
+                    tipo: 'system',
+                    metadata: JSON.stringify({
+                        actionType: action,
+                        consultaId: consultaId,
+                        automated: true
+                    })
+                });
+            } catch (e) {
+                logger.warn(`[Chat Ação] Erro ao adicionar mensagem de confirmação: ${e.message}`);
+            }
+        }
+
+        res.json(resultado);
+
+    } catch (error) {
+        logger.error('[Chat Ação] Erro ao processar resposta:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/chat-proprio/enviar-mensagem-acao
+ * Envia mensagem com botões de ação para um paciente
+ * (Usado pelo sistema ao detectar nova consulta, lembrete 72h, etc)
+ */
+app.post('/api/chat-proprio/enviar-mensagem-acao', async (req, res) => {
+    try {
+        const {
+            prontuario,
+            pacienteNome,
+            tipoAcao,     // 'marcacao', 'lembrete72h', 'desmarcacao'
+            consultaId,
+            consultaInfo  // { especialidade, dataHora, profissional }
+        } = req.body;
+
+        logger.info(`[Chat Ação] Enviando mensagem de ${tipoAcao} para prontuário ${prontuario}`);
+
+        // Busca ou cria conversa com o paciente
+        let conversa = ChatService.buscarConversaPorProntuario(prontuario);
+
+        if (!conversa) {
+            // Cria nova conversa
+            conversa = ChatService.criarConversa({
+                pacienteNome: pacienteNome,
+                prontuario: prontuario,
+                origem: 'sistema',
+                status: 'ativa'
+            });
+        }
+
+        // Monta mensagem e botões baseado no tipo
+        let mensagem = '';
+        let buttons = [];
+
+        switch (tipoAcao) {
+            case 'marcacao':
+                mensagem = `Olá ${pacienteNome}!\n\nVocê tem uma nova consulta agendada:\n\n` +
+                    `📅 *${consultaInfo.especialidade}*\n` +
+                    `🕐 ${consultaInfo.dataHora}\n` +
+                    (consultaInfo.profissional ? `👨‍⚕️ ${consultaInfo.profissional}\n` : '') +
+                    `\nPor favor, confirme sua presença:`;
+
+                buttons = [
+                    { id: 'btn-confirmar', label: 'Confirmar Presença', action: 'confirmar', icon: '✅' },
+                    { id: 'btn-desmarcar', label: 'Não poderei comparecer', action: 'desmarcar', icon: '❌' },
+                    { id: 'btn-nao-agendei', label: 'Não fui eu que agendei', action: 'nao_agendei', icon: '❓' }
+                ];
+                break;
+
+            case 'lembrete72h':
+                mensagem = `Olá ${pacienteNome}!\n\nLembrete: Sua consulta é em 3 dias!\n\n` +
+                    `📅 *${consultaInfo.especialidade}*\n` +
+                    `🕐 ${consultaInfo.dataHora}\n` +
+                    (consultaInfo.profissional ? `👨‍⚕️ ${consultaInfo.profissional}\n` : '') +
+                    `\nConfirma sua presença?`;
+
+                buttons = [
+                    { id: 'btn-confirmar', label: 'Confirmar Presença', action: 'confirmar', icon: '✅' },
+                    { id: 'btn-desmarcar', label: 'Preciso desmarcar', action: 'desmarcar', icon: '❌' }
+                ];
+                break;
+
+            case 'desmarcacao':
+                mensagem = `Olá ${pacienteNome}!\n\nSua consulta foi desmarcada:\n\n` +
+                    `📅 *${consultaInfo.especialidade}*\n` +
+                    `🕐 ${consultaInfo.dataHora}\n\n` +
+                    `Deseja reagendar?`;
+
+                buttons = [
+                    { id: 'btn-reagendar', label: 'Sim, quero reagendar', action: 'reagendar', icon: '📅' },
+                    { id: 'btn-paciente-desmarcou', label: 'Fui eu que desmarcou', action: 'paciente_desmarcou', icon: '👤' },
+                    { id: 'btn-nao-reagendar', label: 'Não, obrigado', action: 'sem_reagendar', icon: '👋' }
+                ];
+                break;
+
+            default:
+                return res.status(400).json({
+                    success: false,
+                    error: 'Tipo de ação inválido'
+                });
+        }
+
+        // Adiciona mensagem com botões
+        const novaMensagem = ChatService.adicionarMensagem({
+            conversaId: conversa.id,
+            conteudo: mensagem,
+            remetenteTipo: 'operador',
+            remetenteNome: 'Central de Atendimento',
+            lido: false,
+            tipo: 'action_buttons',
+            metadata: JSON.stringify({
+                buttons: buttons,
+                consultaId: consultaId,
+                tipoAcao: tipoAcao,
+                responded: false
+            })
+        });
+
+        res.json({
+            success: true,
+            mensagemId: novaMensagem?.id,
+            conversaId: conversa.id,
+            message: 'Mensagem enviada com sucesso'
+        });
+
+    } catch (error) {
+        logger.error('[Chat Ação] Erro ao enviar mensagem de ação:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // ============================================================================
 // PACIENTE - Endpoints do App Mobile (Meu HMASP)
 // ============================================================================
@@ -3872,7 +4013,28 @@ app.post('/api/admin/update', async (req, res) => {
 });
 
 // ============================================================================
-// FALLBACK PARA SPA - Todas as rotas não-API servem o index.html
+// ROTAS ESPECÍFICAS - Mobile e Desktop
+// ============================================================================
+
+// Rota para o App Mobile (Pacientes) - Firebase Hosting
+app.get('/mobile*', (req, res, next) => {
+    // Se for um arquivo estático (js, css, etc), deixa o express.static servir
+    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|json|woff|woff2|ttf|eot)$/)) {
+        return next();
+    }
+
+    // Serve o index.html do mobile
+    const mobilePath = path.join(__dirname, 'mobile', 'index.html');
+    res.sendFile(mobilePath, (err) => {
+        if (err) {
+            console.error('[Mobile] Erro ao servir mobile/index.html:', err);
+            res.status(404).send('App mobile não encontrado.');
+        }
+    });
+});
+
+// ============================================================================
+// FALLBACK PARA SPA - Interface do Operador (Desktop/Intranet)
 // ============================================================================
 
 app.get('*', (req, res, next) => {
@@ -3886,7 +4048,7 @@ app.get('*', (req, res, next) => {
         return next();
     }
 
-    // Serve o index.html do frontend (SPA)
+    // Serve o index.html do frontend (SPA - Interface do Operador)
     const indexPath = path.join(__dirname, 'dist', 'index.html');
     res.sendFile(indexPath, (err) => {
         if (err) {
@@ -5735,6 +5897,489 @@ app.get('/api/whatsapp-respostas/stats', async (req, res) => {
 });
 
 // ============================================================================
+// API: PUSH NOTIFICATIONS (Firebase Cloud Messaging)
+// Endpoints para gerenciar tokens FCM e enviar notificações
+// ============================================================================
+
+// Armazena tokens FCM em memória (em produção usar banco de dados)
+const fcmTokens = new Map(); // prontuario -> { token, deviceInfo, registeredAt }
+
+/**
+ * POST /api/push/register
+ * Registra um token FCM para um paciente
+ */
+app.post('/api/push/register', (req, res) => {
+    try {
+        const { token, prontuario, pacienteId, platform, deviceInfo } = req.body;
+
+        if (!token || !prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'Token e prontuário são obrigatórios'
+            });
+        }
+
+        // Salva o token
+        fcmTokens.set(prontuario, {
+            token: token,
+            pacienteId: pacienteId,
+            platform: platform || 'web',
+            deviceInfo: deviceInfo || {},
+            registeredAt: new Date().toISOString()
+        });
+
+        logger.info(`[Push] Token registrado para prontuário ${prontuario}`);
+
+        res.json({
+            success: true,
+            message: 'Token registrado com sucesso'
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao registrar token:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/push/unregister
+ * Remove um token FCM
+ */
+app.post('/api/push/unregister', (req, res) => {
+    try {
+        const { token, prontuario } = req.body;
+
+        // Remove por token ou prontuário
+        if (prontuario) {
+            fcmTokens.delete(prontuario);
+        } else if (token) {
+            for (const [key, value] of fcmTokens.entries()) {
+                if (value.token === token) {
+                    fcmTokens.delete(key);
+                    break;
+                }
+            }
+        }
+
+        logger.info('[Push] Token removido');
+
+        res.json({
+            success: true,
+            message: 'Token removido com sucesso'
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao remover token:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/push/send
+ * Envia uma notificação push para um paciente
+ * NOTA: Em produção, isso requer o Firebase Admin SDK configurado
+ */
+app.post('/api/push/send', async (req, res) => {
+    try {
+        const {
+            prontuario,
+            title,
+            body,
+            data,
+            silent,
+            screen
+        } = req.body;
+
+        if (!prontuario) {
+            return res.status(400).json({
+                success: false,
+                error: 'Prontuário é obrigatório'
+            });
+        }
+
+        // Busca token do paciente
+        const tokenData = fcmTokens.get(prontuario);
+
+        if (!tokenData) {
+            return res.status(404).json({
+                success: false,
+                error: 'Token não encontrado para este prontuário'
+            });
+        }
+
+        // NOTA: Para enviar notificações de verdade, precisamos do Firebase Admin SDK
+        // Por enquanto, apenas logamos a tentativa
+        logger.info(`[Push] Enviando notificação para ${prontuario}:`, {
+            title: title,
+            body: body,
+            silent: silent,
+            screen: screen
+        });
+
+        // TODO: Implementar envio real com Firebase Admin SDK
+        // const admin = require('firebase-admin');
+        // await admin.messaging().send({
+        //     token: tokenData.token,
+        //     notification: silent ? undefined : { title, body },
+        //     data: { ...data, silent: silent ? 'true' : 'false', screen }
+        // });
+
+        res.json({
+            success: true,
+            message: 'Notificação enviada (simulação)',
+            tokenFound: true
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao enviar notificação:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/push/tokens
+ * Lista todos os tokens registrados (apenas para debug)
+ */
+app.get('/api/push/tokens', (req, res) => {
+    try {
+        const tokens = [];
+        for (const [prontuario, data] of fcmTokens.entries()) {
+            tokens.push({
+                prontuario: prontuario,
+                platform: data.platform,
+                registeredAt: data.registeredAt
+            });
+        }
+
+        res.json({
+            success: true,
+            total: tokens.length,
+            tokens: tokens
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao listar tokens:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/push/notify-marcacao
+ * Envia notificação de nova marcação de consulta (com botões no chat + push silencioso)
+ */
+app.post('/api/push/notify-marcacao', async (req, res) => {
+    try {
+        const { prontuario, pacienteNome, consultaId, consultaInfo } = req.body;
+
+        logger.info(`[Push] Notificando marcação para prontuário ${prontuario}`);
+
+        // 1. Envia mensagem com botões no chat
+        try {
+            await fetch(`http://localhost:${PORT}/api/chat-proprio/enviar-mensagem-acao`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prontuario,
+                    pacienteNome,
+                    tipoAcao: 'marcacao',
+                    consultaId,
+                    consultaInfo
+                })
+            });
+        } catch (e) {
+            logger.warn('[Push] Erro ao enviar mensagem de chat:', e.message);
+        }
+
+        // 2. Envia push notification silenciosa (apenas badge)
+        const tokenData = fcmTokens.get(prontuario);
+        if (tokenData) {
+            // TODO: Firebase Admin SDK para push real
+            logger.info(`[Push] Push silencioso enviado para ${prontuario}`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Notificação de marcação enviada'
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao notificar marcação:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/push/notify-lembrete72h
+ * Envia notificação de lembrete 72h (push com alerta para aba Consultas)
+ */
+app.post('/api/push/notify-lembrete72h', async (req, res) => {
+    try {
+        const { prontuario, pacienteNome, consultaId, consultaInfo } = req.body;
+
+        logger.info(`[Push] Enviando lembrete 72h para prontuário ${prontuario}`);
+
+        // 1. Envia mensagem com botões no chat (sem "não fui eu que agendei")
+        try {
+            await fetch(`http://localhost:${PORT}/api/chat-proprio/enviar-mensagem-acao`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prontuario,
+                    pacienteNome,
+                    tipoAcao: 'lembrete72h',
+                    consultaId,
+                    consultaInfo
+                })
+            });
+        } catch (e) {
+            logger.warn('[Push] Erro ao enviar mensagem de chat:', e.message);
+        }
+
+        // 2. Envia push notification com alerta
+        const tokenData = fcmTokens.get(prontuario);
+        if (tokenData) {
+            // TODO: Firebase Admin SDK para push real
+            logger.info(`[Push] Push com alerta enviado para ${prontuario}: Lembrete de consulta em 3 dias`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Lembrete 72h enviado'
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao enviar lembrete 72h:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/push/notify-desmarcacao
+ * Envia notificação de desmarcação (push + chat com opção de reagendar)
+ */
+app.post('/api/push/notify-desmarcacao', async (req, res) => {
+    try {
+        const { prontuario, pacienteNome, consultaId, consultaInfo } = req.body;
+
+        logger.info(`[Push] Notificando desmarcação para prontuário ${prontuario}`);
+
+        // 1. Envia mensagem com botões no chat
+        try {
+            await fetch(`http://localhost:${PORT}/api/chat-proprio/enviar-mensagem-acao`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prontuario,
+                    pacienteNome,
+                    tipoAcao: 'desmarcacao',
+                    consultaId,
+                    consultaInfo
+                })
+            });
+        } catch (e) {
+            logger.warn('[Push] Erro ao enviar mensagem de chat:', e.message);
+        }
+
+        // 2. Envia push notification com alerta
+        const tokenData = fcmTokens.get(prontuario);
+        if (tokenData) {
+            // TODO: Firebase Admin SDK para push real
+            logger.info(`[Push] Push com alerta enviado para ${prontuario}: Consulta desmarcada`);
+        }
+
+        res.json({
+            success: true,
+            message: 'Notificação de desmarcação enviada'
+        });
+    } catch (error) {
+        logger.error('[Push] Erro ao notificar desmarcação:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ============================================================================
+// API: AÇÕES PENDENTES (Dashboard do Operador)
+// Endpoints para gerenciar ações que precisam ser executadas no AGHUse
+// ============================================================================
+
+/**
+ * GET /api/acoes/confirmacoes-declinadas
+ * Busca confirmações com status 'declined' ou 'not_scheduled' (paciente não irá)
+ * Essas precisam ser desmarcadas no AGHUse pelo operador
+ */
+app.get('/api/acoes/confirmacoes-declinadas', (req, res) => {
+    try {
+        // Busca confirmações com status que indicam necessidade de desmarcação
+        const confirmacoes = ConsultasService.getAllConsultasAtivas({})
+            .filter(c => c.status_geral === 'declined' || c.status_geral === 'not_scheduled');
+
+        // Formata para o frontend
+        const confirmacoesFomatadas = confirmacoes.map(c => ({
+            id: c.id,
+            consultaNumero: c.consulta_numero,
+            nomePaciente: c.nome_paciente,
+            prontuario: c.prontuario,
+            telefone: c.telefone,
+            especialidade: c.especialidade,
+            dataHoraFormatada: c.data_hora_formatada,
+            tipo: c.tipo,
+            statusGeral: c.status_geral,
+            criadoEm: c.criado_em,
+            atualizadoEm: c.atualizado_em
+        }));
+
+        logger.info(`[API Ações] Confirmações declinadas: ${confirmacoesFomatadas.length}`);
+
+        res.json({
+            success: true,
+            confirmacoes: confirmacoesFomatadas,
+            total: confirmacoesFomatadas.length
+        });
+    } catch (error) {
+        logger.error('[API Ações] Erro ao buscar confirmações declinadas:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/acoes/desmarcacoes-reagendamento
+ * Busca desmarcações com tipo 'reagendamento' (paciente quer reagendar)
+ * Essas precisam ser reagendadas no AGHUse pelo operador
+ */
+app.get('/api/acoes/desmarcacoes-reagendamento', (req, res) => {
+    try {
+        // Busca desmarcações que solicitam reagendamento
+        const desmarcacoes = ConsultasService.getAllDesmarcacoesAtivas({})
+            .filter(d => d.tipo_desmarcacao === 'reagendamento' || d.status === 'reagendamento');
+
+        // Formata para o frontend
+        const desmarcacoesFormatadas = desmarcacoes.map(d => ({
+            id: d.id,
+            consultaNumero: d.consulta_numero,
+            nomePaciente: d.nome_paciente,
+            prontuario: d.prontuario,
+            telefone: d.telefone,
+            especialidade: d.especialidade,
+            dataHoraFormatada: d.data_hora_formatada,
+            tipoDesmarcacao: d.tipo_desmarcacao,
+            status: d.status,
+            criadoEm: d.criado_em,
+            atualizadoEm: d.atualizado_em
+        }));
+
+        logger.info(`[API Ações] Desmarcações reagendamento: ${desmarcacoesFormatadas.length}`);
+
+        res.json({
+            success: true,
+            desmarcacoes: desmarcacoesFormatadas,
+            total: desmarcacoesFormatadas.length
+        });
+    } catch (error) {
+        logger.error('[API Ações] Erro ao buscar desmarcações reagendamento:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * POST /api/acoes/concluir
+ * Marca uma ação como concluída (foi executada no AGHUse)
+ */
+app.post('/api/acoes/concluir', (req, res) => {
+    try {
+        const { acaoId, tipo, confirmacaoId, desmarcacaoId } = req.body;
+
+        if (!acaoId || !tipo) {
+            return res.status(400).json({
+                success: false,
+                error: 'Parâmetros obrigatórios: acaoId, tipo'
+            });
+        }
+
+        logger.info(`[API Ações] Concluindo ação: tipo=${tipo}, id=${acaoId}`);
+
+        let resultado = false;
+
+        if (tipo === 'desmarcar' && confirmacaoId) {
+            // Arquiva a consulta (paciente não irá)
+            resultado = ConsultasService.arquivarConsulta(confirmacaoId, 'concluida_operador', 'operador');
+            logger.info(`[API Ações] Consulta ${confirmacaoId} arquivada: ${resultado}`);
+        } else if (tipo === 'reagendar' && desmarcacaoId) {
+            // Arquiva a desmarcação (foi reagendada)
+            resultado = ConsultasService.arquivarDesmarcacao(desmarcacaoId, 'reagendada_operador', 'operador');
+            logger.info(`[API Ações] Desmarcação ${desmarcacaoId} arquivada: ${resultado}`);
+        } else {
+            return res.status(400).json({
+                success: false,
+                error: 'Tipo de ação inválido ou ID faltando'
+            });
+        }
+
+        res.json({
+            success: resultado,
+            message: resultado ? 'Ação concluída com sucesso' : 'Não foi possível concluir a ação'
+        });
+    } catch (error) {
+        logger.error('[API Ações] Erro ao concluir ação:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+/**
+ * GET /api/acoes/stats
+ * Estatísticas das ações pendentes
+ */
+app.get('/api/acoes/stats', (req, res) => {
+    try {
+        // Conta confirmações declinadas
+        const confirmacoes = ConsultasService.getAllConsultasAtivas({})
+            .filter(c => c.status_geral === 'declined' || c.status_geral === 'not_scheduled');
+
+        // Conta desmarcações reagendamento
+        const desmarcacoes = ConsultasService.getAllDesmarcacoesAtivas({})
+            .filter(d => d.tipo_desmarcacao === 'reagendamento' || d.status === 'reagendamento');
+
+        res.json({
+            success: true,
+            stats: {
+                total: confirmacoes.length + desmarcacoes.length,
+                desmarcar: confirmacoes.length,
+                reagendar: desmarcacoes.length
+            }
+        });
+    } catch (error) {
+        logger.error('[API Ações] Erro ao buscar estatísticas:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// ============================================================================
 // INICIALIZAÇÃO
 // ============================================================================
 
@@ -5804,8 +6449,7 @@ httpServer = app.listen(PORT, '0.0.0.0', () => {
         console.error('❌ Erro ao inicializar sistema de Chat:', error);
     }
 
-    // Inicializa WhatsApp
-    initializeWhatsApp();
+    console.log('✅ Comunicação via Chat Próprio + Push Notifications (WhatsApp desativado)');
 
     // ============================================================================
     // LIMPEZA PERIÓDICA DE CONTEXTOS EXPIRADOS (SQLite Thread-Safe)
@@ -5821,15 +6465,16 @@ httpServer = app.listen(PORT, '0.0.0.0', () => {
         }
     }, 15 * 60 * 1000); // A cada 15 minutos (otimizado para reduzir memory leak)
 
-    // Abre as três interfaces automaticamente
+    // DESABILITADO: Abertura automática de interfaces
+    // Agora usa INICIAR.bat para controlar quais abas abrir
+    /*
     setTimeout(() => {
         const { execFile } = require('child_process');
         const os = require('os');
         console.log('');
         console.log('🌐 Abrindo interfaces no navegador...');
-        console.log('   1️⃣  Interface Principal (Usuários - Visualização)');
-        console.log('   2️⃣  Interface Admin (VM Ubuntu - Envio Automático)');
-        console.log('   3️⃣  WhatsApp Admin (Status/QR Code)');
+        console.log('   1️⃣  Interface Principal (Operadores)');
+        console.log('   2️⃣  Interface Admin (Envio Automático)');
 
         // Função segura para abrir URLs
         const openUrl = (url) => {
@@ -5852,15 +6497,13 @@ httpServer = app.listen(PORT, '0.0.0.0', () => {
             });
         };
 
-        // Abre Interface Principal (Usuários)
+        // Abre Interface Principal (Operadores)
         openUrl(`http://localhost:${PORT}/`);
 
-        // Abre Interface Admin (VM - Envio Automático) após 1 segundo
+        // Abre Interface Admin (Envio Automático) após 1 segundo
         setTimeout(() => openUrl(`http://localhost:${PORT}/admin.html`), 1000);
-
-        // Abre WhatsApp Admin (Status/QR) após 2 segundos
-        setTimeout(() => openUrl(`http://localhost:${PORT}/whatsapp-admin.html`), 2000);
     }, 2000); // Aguarda 2 segundos para garantir que o servidor está pronto
+    */
 });
 
 // ============================================================================

@@ -8,6 +8,7 @@ import { Toast } from '../utils/toast.js';
 
 // Estado do componente
 const state = {
+    initialized: false, // Flag para evitar múltiplas inicializações
     pacienteAtual: null,
     consultas: [],
     isLoading: false,
@@ -46,6 +47,13 @@ const elements = {
  * Inicializa o componente
  */
 export function init() {
+    // Evita múltiplas inicializações
+    if (state.initialized) {
+        console.log('[ConsultasPaciente] Componente já inicializado, pulando...');
+        return;
+    }
+    state.initialized = true;
+
     console.log('[ConsultasPaciente] Inicializando componente...');
 
     // Captura referencias aos elementos do DOM

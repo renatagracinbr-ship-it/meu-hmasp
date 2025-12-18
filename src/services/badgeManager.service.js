@@ -18,8 +18,8 @@
  * - Resposta 3 → status "sem_reagendamento" → card informativo → Mensagem automática agradecimento
  */
 
-import * as WhatsAppTemplates from './whatsappTemplates.service.js';
-import * as WhatsAppQueue from './whatsappQueue.service.js';
+// URL base da API do servidor
+const API_BASE = window.API_BASE_URL || 'http://localhost:3000';
 
 /**
  * Definição de badges e cores
@@ -244,34 +244,20 @@ export async function processDesmarcacaoResponse(desmarcacao, intent, telefone) 
 }
 
 /**
- * Envia resposta automática via WhatsApp (com typing delay)
+ * Envia resposta automática via Chat Próprio
  *
- * @param {string} telefone - Telefone normalizado
+ * NOTA: As respostas automáticas agora são enviadas pelo backend
+ * quando o paciente responde via Chat Próprio. Esta função é mantida
+ * para compatibilidade, mas pode ser removida em versões futuras.
+ *
+ * @param {string} telefone - Telefone normalizado (não usado no Chat Próprio)
  * @param {string} texto - Texto da mensagem
  * @returns {Promise<void>}
  */
 async function sendAutoResponse(telefone, texto) {
-    try {
-        // Formata chatId
-        const chatId = WhatsAppTemplates.formatWhatsAppChatId(telefone);
-
-        // Adiciona à fila (já tem typing delay e proteção anti-ban)
-        await WhatsAppQueue.addToQueue({
-            chatId,
-            texto,
-            botoes: null, // Sem botões nas respostas automáticas
-            metadata: {
-                type: 'auto_response',
-                telefone
-            }
-        });
-
-        console.log(`[BadgeManager] Resposta automática adicionada à fila: ${telefone}`);
-
-    } catch (error) {
-        console.error('[BadgeManager] Erro ao enviar resposta automática:', error);
-        // Não lança erro, apenas loga (não queremos bloquear o fluxo)
-    }
+    // No Chat Próprio, as respostas automáticas são enviadas pelo backend
+    // quando o paciente clica em um botão de ação no chat
+    console.log(`[BadgeManager] Resposta automática gerenciada pelo backend Chat Próprio`);
 }
 
 /**
@@ -322,32 +308,31 @@ export async function processOperatorReagendamento(consultaOriginalId, novaConsu
     console.log(`[BadgeManager] Reagendamento: ${consultaOriginalId} → Nova consulta ${novaConsulta.consultaNumero}`);
 
     try {
-        // Template REAGENDAMENTO_CONFIRMACAO com 3 botões (permite desmarcação para liberar vaga)
-        const mensagem = WhatsAppTemplates.generateMessage('reagendamento_confirmacao', {
-            nomePaciente: novaConsulta.nomeCompleto,  // ✅ CORRIGIDO: nomeCompleto não nomePaciente
-            especialidade: novaConsulta.especialidade,
-            dataHora: novaConsulta.dataHoraFormatada,
-            medico: novaConsulta.profissional
+        // Envia notificação de reagendamento via Chat Próprio
+        const response = await fetch(`${API_BASE}/api/push/notify-marcacao`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                prontuario: novaConsulta.prontuario,
+                pacienteNome: novaConsulta.nomeCompleto,
+                consultaId: novaConsulta.consultaNumero,
+                consultaInfo: {
+                    especialidade: novaConsulta.especialidade,
+                    dataHora: novaConsulta.dataHoraFormatada,
+                    profissional: novaConsulta.profissional,
+                    local: novaConsulta.local
+                },
+                isReagendamento: true,
+                consultaOriginalId: consultaOriginalId
+            })
         });
 
-        // Formata chatId
-        const chatId = WhatsAppTemplates.formatWhatsAppChatId(telefone);
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.error || `HTTP ${response.status}`);
+        }
 
-        // Envia via fila
-        await WhatsAppQueue.addToQueue({
-            chatId,
-            texto: mensagem.texto,
-            botoes: mensagem.botoes,  // 3 botões: Confirmar, Não poderei, Não agendei
-            metadata: {
-                type: 'reagendamento_confirmacao',
-                consultaOriginalId,
-                novaConsultaId: novaConsulta.consultaNumero,
-                telefone,
-                isReagendamento: true  // ✅ Flag para identificar reagendamento
-            }
-        });
-
-        console.log(`[BadgeManager] ✅ Mensagem de reagendamento enviada para ${telefone}`);
+        console.log(`[BadgeManager] ✅ Mensagem de reagendamento enviada via Chat Próprio`);
 
         // ✅ ATUALIZA BADGE: Vermelho → Verde
         try {

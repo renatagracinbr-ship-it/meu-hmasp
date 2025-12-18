@@ -385,7 +385,7 @@ function getMensagemHTML(msg) {
     return `
         <div class="message ${isOperador ? 'message-sent' : 'message-received'}">
             <div class="message-content">
-                <p>${escapeHtml(msg.conteudo)}</p>
+                <p>${formatMessageText(msg.conteudo)}</p>
                 <span class="message-time">${hora}</span>
             </div>
         </div>
@@ -399,6 +399,31 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+/**
+ * Formata texto com markdown para HTML
+ * Converte *texto* para <strong>texto</strong>
+ * Converte _texto_ para <em>texto</em>
+ * Preserva quebras de linha como <br>
+ * Previne XSS escapando HTML primeiro
+ */
+function formatMessageText(text) {
+    if (!text) return '';
+
+    // Primeiro escapa todo HTML para prevenir XSS
+    let formatted = escapeHtml(text);
+
+    // Converte *texto* para <strong>texto</strong> (negrito)
+    formatted = formatted.replace(/\*(.*?)\*/g, '<strong>$1</strong>');
+
+    // Converte _texto_ para <em>texto</em> (itálico)
+    formatted = formatted.replace(/_(.*?)_/g, '<em>$1</em>');
+
+    // Converte quebras de linha para <br>
+    formatted = formatted.replace(/\n/g, '<br>');
+
+    return formatted;
 }
 
 /**

@@ -14,8 +14,8 @@ import { PhoneNormalizer } from '../utils/phoneNormalizer.js';
 import { Toast } from '../utils/toast.js';
 import * as ConsultasSQLite from '../services/consultasSQLite.service.js';
 
-// Helper: Converte Markdown WhatsApp (*negrito*) para HTML <strong>
-function formatWhatsAppToHTML(text) {
+// Helper: Converte Markdown (*negrito*) para HTML <strong>
+function formatMarkdownToHTML(text) {
     if (!text) return text;
 
     // Converte *texto* para <strong>texto</strong>
@@ -28,40 +28,6 @@ function truncateText(text, maxLength = 30) {
     if (!text) return text;
     if (text.length <= maxLength) return text;
     return text.substring(0, maxLength) + '...';
-}
-
-/**
- * Busca foto de perfil do WhatsApp
- * @param {string} telefone - Telefone normalizado
- * @returns {Promise<string|null>} URL da foto ou null
- */
-async function getProfilePicUrl(telefone) {
-    if (!telefone) return null;
-
-    // Verifica cache
-    if (state.profilePicCache.has(telefone)) {
-        return state.profilePicCache.get(telefone);
-    }
-
-    try {
-        // Formata telefone para ID do WhatsApp (remove formatação)
-        const phoneId = telefone.replace(/\D/g, '');
-        const contactId = `${phoneId}@c.us`;
-
-        const response = await fetch(`${CONFIG.WHATSAPP_BACKEND}/api/contact/${contactId}`);
-        if (!response.ok) return null;
-
-        const data = await response.json();
-        const picUrl = data.contactInfo?.profilePicUrl || null;
-
-        // Armazena no cache
-        state.profilePicCache.set(telefone, picUrl);
-
-        return picUrl;
-    } catch (error) {
-        console.warn(`[Confirmação] Erro ao buscar foto de ${telefone}:`, error);
-        return null;
-    }
 }
 
 /**
@@ -82,6 +48,7 @@ const isAdminInterface = window.location.pathname.includes('admin.html');
 
 // Estado do componente
 const state = {
+    initialized: false, // Flag para evitar múltiplas inicializações
     monitoringActive: false,
     confirmations: [],
     confirmationsArquivadas: [], // Confirmações arquivadas (carregadas do banco)
@@ -89,11 +56,7 @@ const state = {
     filtroNome: '', // Filtro de busca por nome
     mostrarArquivados: false, // Checkbox de mostrar arquivados
     unregisterCallback: null, // Função para remover callback do monitoramento global
-    autoSendEnabled: false, // SEMPRE DESABILITADO - envio manual apenas
-    isMasterTab: false, // Não usado mais (removido sistema de ABA MASTER)
-    responsePollingStarted: false, // Flag para evitar múltiplos pollings
-    processedResponses: new Set(), // IDs de respostas já processadas (evita duplicatas)
-    profilePicCache: new Map() // Cache de fotos de perfil {telefone: url}
+    autoSendEnabled: false // SEMPRE DESABILITADO - envio manual apenas
 };
 
 // Elementos do DOM
@@ -117,6 +80,13 @@ const elements = {
  * Inicializa o componente
  */
 export async function init() {
+    // Evita múltiplas inicializações
+    if (state.initialized) {
+        console.log('[Confirmação] Componente já inicializado, pulando...');
+        return;
+    }
+    state.initialized = true;
+
     console.log('[Confirmação] Inicializando componente...');
 
     // Captura elementos do DOM
@@ -209,10 +179,9 @@ export async function init() {
     // Inicia monitoramento de lembretes 72h
     await startLembrete72hMonitoring();
 
-    // Inicia polling para ler respostas do WhatsApp
-    console.log('[Confirmação] ⚠️ DEBUG: Prestes a chamar startResponsePolling()...');
-    startResponsePolling();
-    console.log('[Confirmação] ⚠️ DEBUG: startResponsePolling() foi chamado!');
+    // Respostas dos pacientes são processadas automaticamente via Chat Próprio
+    // O endpoint /api/chat-proprio/acao-resposta atualiza o status diretamente no SQLite
+    console.log('[Confirmação] 📱 Respostas processadas via Chat Próprio (sem WhatsApp)');
 
     // Inicia auto-arquivamento periódico (a cada 1 hora)
     startAutoArquivamento();
@@ -903,26 +872,6 @@ async function autoSendMessages(confirmations) {
 }
 
 /**
- * Inicia polling para consultar respostas do WhatsApp
- */
-function startResponsePolling() {
-    // Evita iniciar múltiplos pollings
-    if (state.responsePollingStarted) {
-        console.log('[Confirmação] 📱 Polling de respostas já está ativo, pulando...');
-        return;
-    }
-
-    state.responsePollingStarted = true;
-    console.log('[Confirmação] 📱 Iniciando polling de respostas WhatsApp...');
-
-    // Consulta imediatamente
-    checkWhatsAppResponses();
-
-    // Depois consulta a cada 1 segundo (tempo real)
-    setInterval(checkWhatsAppResponses, 1000);
-}
-
-/**
  * Inicia auto-arquivamento periódico
  */
 function startAutoArquivamento() {
@@ -936,251 +885,50 @@ function startAutoArquivamento() {
 }
 
 /**
- * Consulta endpoint /api/whatsapp/responses para obter respostas do WhatsApp
+ * Extrai número de telefone (mantido para compatibilidade)
  */
-async function checkWhatsAppResponses() {
-    try {
-        const response = await fetch(`${CONFIG.WHATSAPP_BACKEND}/api/whatsapp/responses`);
-        const data = await response.json();
-
-        if (!data.success) {
-            console.error('[Confirmação] Erro ao buscar respostas:', data.error);
-            return;
-        }
-
-        if (!data.responses || data.responses.length === 0) {
-            return; // Nenhuma resposta nova
-        }
-
-        console.log(`[Confirmação] 📱 ${data.responses.length} respostas do WhatsApp recebidas`);
-
-        // Processa cada resposta
-        for (const response of data.responses) {
-            processWhatsAppResponse(response);
-        }
-
-    } catch (error) {
-        console.error('[Confirmação] Erro ao consultar respostas WhatsApp:', error);
-    }
+function extractPhoneNumber(phoneNumber) {
+    if (!phoneNumber) return '';
+    // Remove caracteres não numéricos
+    return phoneNumber.replace(/\D/g, '');
 }
 
 /**
- * Extrai número de telefone removendo sufixos do WhatsApp
+ * Processa uma resposta do Chat Próprio e atualiza o status da confirmação
+ * As respostas são atualizadas diretamente no SQLite via /api/chat-proprio/acao-resposta
+ * Esta função é chamada apenas para atualização local da UI
  */
-function extractPhoneNumber(chatId) {
-    if (!chatId) return '';
-    // Remove sufixos do WhatsApp (@c.us, @lid, @g.us) e depois remove caracteres não numéricos
-    return chatId.replace(/@c\.us|@lid|@g\.us/g, '').replace(/\D/g, '');
-}
-
-/**
- * Processa uma resposta do WhatsApp e atualiza o status da confirmação
- */
-function processWhatsAppResponse(response) {
-    const { confirmacaoId, status, contexto, timestamp, telefone } = response;
-
-    // Gera ID único para esta resposta (para evitar processamento duplicado)
-    const responseKey = confirmacaoId || `${telefone}_${status}_${timestamp}`;
-
-    // Verifica se já processamos esta resposta
-    if (state.processedResponses.has(responseKey)) {
-        // Já processada, ignora silenciosamente
+function processChatProprioResponse(confirmacaoId, status) {
+    if (!confirmacaoId || !status) {
+        console.warn('[Confirmação] ⚠️ Resposta inválida - faltando ID ou status');
         return;
     }
 
-    // Marca como processada
-    state.processedResponses.add(responseKey);
-
-    // Limpa respostas antigas do Set (mantém apenas as últimas 100)
-    if (state.processedResponses.size > 100) {
-        const arr = Array.from(state.processedResponses);
-        state.processedResponses = new Set(arr.slice(-100));
-    }
-
-    // 1️⃣ Validação de dados obrigatórios
-    if (!confirmacaoId) {
-        // Fallback: se não tem ID, tenta usar método legado por telefone
-        console.warn('[Confirmação] ⚠️ Resposta sem ID único, usando método legado');
-        processWhatsAppResponseLegacy(response);
-        return;
-    }
-
-    if (!status) {
-        console.warn('[Confirmação] ⚠️ Resposta sem status, ignorando');
-        return;
-    }
-
-    console.log('[Confirmação] 📱 Processando resposta:', {
-        confirmacaoId,
-        status,
-        contexto
-    });
-
-    // 2️⃣ Busca DIRETAMENTE pelo ID único
+    // Busca confirmação pelo ID
     const confirmation = state.confirmations.find(c => c.id === confirmacaoId);
 
     if (!confirmation) {
         console.warn('[Confirmação] ⚠️ Confirmação não encontrada:', confirmacaoId);
-
-        // Verifica se está na aba errada
-        if (contexto === 'desmarcacao') {
-            console.log('[Confirmação] ℹ️ Resposta é de desmarcação, será processada na outra aba');
-        } else {
-            console.error('[Confirmação] ❌ ERRO: Confirmação não existe no state!');
-        }
-
         return;
     }
 
-    // 3️⃣ Validação cruzada de segurança
-    if (confirmation.contexto !== contexto) {
-        console.error('[Confirmação] ❌ ERRO DE SEGURANÇA: Contexto não corresponde!', {
-            esperado: confirmation.contexto,
-            recebido: contexto,
-            confirmacaoId
-        });
-
-        Toast.error(
-            'ERRO DE CLASSIFICAÇÃO',
-            `Contexto inválido para confirmação ${confirmacaoId}. Contate o suporte.`,
-            10000
-        );
-
-        return;
-    }
-
-    // 4️⃣ Valida status compatível
-    const statusValidosConfirmacao = ['confirmed', 'declined', 'not_scheduled'];
-    if (!statusValidosConfirmacao.includes(status)) {
-        console.error('[Confirmação] ❌ ERRO: Status inválido:', status);
-
-        Toast.error(
-            'ERRO DE STATUS',
-            `Status "${status}" não é válido para confirmação.`,
-            10000
-        );
-
-        return;
-    }
-
-    // 5️⃣ Atualiza status (100% seguro)
+    // Atualiza status local
     const statusAnterior = confirmation.statusGeral;
     confirmation.statusGeral = status;
-    confirmation.dataResposta = timestamp;
+    confirmation.dataResposta = new Date().toISOString();
 
-    // Atualiza também o status da mensagem
-    const mensagem = confirmation.mensagens.find(m => m.telefone);
-    if (mensagem) {
-        mensagem.status = status;
-    }
-
-    console.log('[Confirmação] ✅ Status atualizado:', {
+    console.log('[Confirmação] ✅ Status atualizado via Chat Próprio:', {
         confirmacaoId,
         paciente: confirmation.nomePaciente,
         statusAnterior,
         statusNovo: status
     });
 
-    // 6️⃣ Atualiza no SQLite e UI
-    if (confirmation.consultaNumero) {
-        // Fire-and-forget: atualização assíncrona do SQLite (não bloqueia UI)
-        ConsultasSQLite.updateConsultaStatus(confirmation.consultaNumero, status)
-            .then(success => {
-                if (success) {
-                    console.log(`[Confirmação] ✅ Status atualizado no SQLite: ${confirmation.consultaNumero}`);
-                } else {
-                    console.warn(`[Confirmação] ⚠️ Falha ao atualizar no SQLite: ${confirmation.consultaNumero}`);
-                }
-            })
-            .catch(error => {
-                console.error(`[Confirmação] ❌ Erro ao atualizar no SQLite:`, error);
-            });
-    }
-
-    renderConfirmations();
-    updateStats();
-
-    // 7️⃣ Notifica
-    const statusLabel = getStatusLabel(status);
-    Toast.info(
-        'Resposta recebida!',
-        `${confirmation.nomePaciente}: ${statusLabel}`,
-        4000
-    );
-}
-
-/**
- * Processa resposta usando método legado (busca por telefone)
- * Usado como fallback para compatibilidade
- */
-function processWhatsAppResponseLegacy(response) {
-    // Ignora respostas de desmarcação (são processadas na aba de Desmarcação)
-    if (response.contexto === 'desmarcacao') {
-        return;
-    }
-
-    const { telefone, status, timestamp } = response;
-
-    if (!telefone || !status) {
-        console.warn('[Confirmação] Resposta inválida:', response);
-        return;
-    }
-
-    console.log(`[Confirmação] [LEGADO] Processando resposta: ${telefone} -> ${status}`);
-
-    // Extrai número de telefone (remove @c.us, @lid, @g.us e caracteres especiais)
-    const telefoneNormalizado = extractPhoneNumber(telefone);
-    console.log(`[Confirmação] 🔍 Telefone normalizado da resposta: ${telefoneNormalizado} (original: ${telefone})`);
-
-    // Busca confirmação pelo telefone
-    const confirmation = state.confirmations.find(c => {
-        return c.mensagens.some(m => {
-            const telConfirmacao = extractPhoneNumber(m.telefone || '');
-            return telConfirmacao === telefoneNormalizado;
-        });
-    });
-
-    if (!confirmation) {
-        console.warn(`[Confirmação] ⚠️ Confirmação não encontrada para telefone: ${telefone} (normalizado: ${telefoneNormalizado})`);
-        return;
-    }
-
-    // Atualiza status geral da confirmação
-    const statusAnterior = confirmation.statusGeral;
-    confirmation.statusGeral = status;
-    confirmation.dataResposta = timestamp;
-
-    // Atualiza também o status da mensagem específica
-    const mensagem = confirmation.mensagens.find(m => {
-        const telConfirmacao = (m.telefone || '').replace(/\D/g, '');
-        return telConfirmacao === telefoneNormalizado;
-    });
-
-    if (mensagem) {
-        mensagem.status = status;
-    }
-
-    console.log(`[Confirmação] ✅ Status atualizado (legado): ${confirmation.nomePaciente} - ${statusAnterior} → ${status}`);
-
-    // Atualiza no SQLite
-    if (confirmation.consultaNumero) {
-        // Fire-and-forget: atualização assíncrona do SQLite (não bloqueia UI)
-        ConsultasSQLite.updateConsultaStatus(confirmation.consultaNumero, status)
-            .then(success => {
-                if (success) {
-                    console.log(`[Confirmação] ✅ Status atualizado no SQLite (legado): ${confirmation.consultaNumero}`);
-                }
-            })
-            .catch(error => {
-                console.error(`[Confirmação] ❌ Erro ao atualizar no SQLite (legado):`, error);
-            });
-    }
-
     // Atualiza UI
     renderConfirmations();
     updateStats();
 
-    // Mostra notificação
+    // Notifica
     const statusLabel = getStatusLabel(status);
     Toast.info(
         'Resposta recebida!',
@@ -1306,35 +1054,35 @@ function renderConfirmationCard(confirmation) {
     // ✅ Badge de Ação (DESMARCAR ou DESMARCADA)
     // Badge de Identificação de Reagendamento é separado (badge amarelo)
     //
-    // IMPORTANTE: Só mostra badges se houve interação via WhatsApp!
+    // IMPORTANTE: Só mostra badges se houve interação via Chat Próprio!
     // Se paciente marcou/desmarcou pela internet sem interagir com nosso sistema,
     // NÃO deve aparecer nenhum badge de desmarcação.
     //
     // Condições para mostrar badge:
-    // 1. Paciente respondeu via WhatsApp (badgeStatus existe ou dataResposta existe)
+    // 1. Paciente respondeu via Chat Próprio (badgeStatus existe ou dataResposta existe)
     // 2. OU badge foi criado no SQLite (sincronizado via syncBadgesWithConfirmations)
     let badgeAcao = '';
 
-    // Verifica se houve interação via WhatsApp (resposta do paciente)
-    const houveRespostaWhatsApp = confirmation.badgeStatus || confirmation.dataResposta;
+    // Verifica se houve interação via Chat Próprio (resposta do paciente)
+    const houveRespostaChatProprio = confirmation.badgeStatus || confirmation.dataResposta;
 
     // 1️⃣ DESMARCADA (verde) - statusGeral === 'cancelled' significa que operador já desmarcou no AGHUse
     // O status só muda para 'cancelled' se antes era 'declined' (via detectarDesmarcacaoEAtualizarBadge)
-    // Portanto, se está 'cancelled', implicitamente houve resposta WhatsApp antes
+    // Portanto, se está 'cancelled', implicitamente houve resposta Chat Próprio antes
     if (confirmation.badgeStatus === 'desmarcada' || confirmation.statusGeral === 'cancelled') {
         badgeAcao = '<div class="badge-desmarcada">✅ Desmarcada</div>';
         console.log(`[Confirmação] 🟢 Badge DESMARCADA (verde) para: ${confirmation.nomePaciente} - statusGeral: ${confirmation.statusGeral}`);
     }
-    // 2️⃣ DESMARCAR (vermelho) - Paciente respondeu via WhatsApp que não virá
-    else if (houveRespostaWhatsApp && (confirmation.statusGeral === 'declined' || confirmation.statusGeral === 'not_scheduled')) {
+    // 2️⃣ DESMARCAR (vermelho) - Paciente respondeu via Chat Próprio que não virá
+    else if (houveRespostaChatProprio && (confirmation.statusGeral === 'declined' || confirmation.statusGeral === 'not_scheduled')) {
         badgeAcao = '<div class="badge-desmarcar">Desmarcar</div>';
         console.log(`[Confirmação] 🔴 Badge DESMARCAR (vermelho) para: ${confirmation.nomePaciente} - statusGeral: ${confirmation.statusGeral}`);
     }
-    // 3️⃣ Se statusGeral indica desmarcação MAS não houve resposta WhatsApp, NÃO mostra badge
-    else if (!houveRespostaWhatsApp && (confirmation.statusGeral === 'declined' || confirmation.statusGeral === 'not_scheduled')) {
-        // Paciente marcou/desmarcou pela internet sem interagir com WhatsApp
-        // NÃO mostrar badge - apenas monitora o que vem pelo WhatsApp
-        console.log(`[Confirmação] ⏭️ Sem badge para: ${confirmation.nomePaciente} - sem resposta WhatsApp (statusGeral: ${confirmation.statusGeral})`);
+    // 3️⃣ Se statusGeral indica desmarcação MAS não houve resposta Chat Próprio, NÃO mostra badge
+    else if (!houveRespostaChatProprio && (confirmation.statusGeral === 'declined' || confirmation.statusGeral === 'not_scheduled')) {
+        // Paciente marcou/desmarcou pela internet sem interagir com Chat Próprio
+        // NÃO mostrar badge - apenas monitora o que vem pelo Chat Próprio
+        console.log(`[Confirmação] ⏭️ Sem badge para: ${confirmation.nomePaciente} - sem resposta Chat Próprio (statusGeral: ${confirmation.statusGeral})`);
     }
 
     // Badge de Reagendamento (amarelo) - Apenas identificação visual
@@ -1714,7 +1462,7 @@ async function handleSendTest(e) {
         return;
     }
 
-    if (!confirm('Simular envio de mensagem?\n\nMODO DESENVOLVIMENTO: Não enviará WhatsApp real.')) {
+    if (!confirm('Simular envio de mensagem?\n\nMODO DESENVOLVIMENTO: Não enviará notificação real.')) {
         return;
     }
 
@@ -1756,7 +1504,7 @@ function handleFixPhone(e) {
         `CPF/Código: ${confirmation.pacCodigo}\n\n` +
         `Consulta marcada para: ${confirmation.dataHoraFormatada}\n` +
         `Especialidade: ${confirmation.especialidade}\n\n` +
-        `⚠️ Para enviar a confirmação por WhatsApp, é necessário:\n` +
+        `⚠️ Para enviar a notificação, é necessário:\n` +
         `1. Acessar o sistema AGHUse\n` +
         `2. Localizar o cadastro do paciente\n` +
         `3. Adicionar um telefone celular válido\n` +
