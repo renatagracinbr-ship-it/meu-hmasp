@@ -8,21 +8,17 @@
  */
 
 const CONFIG = {
-    // Backend WhatsApp (Mesmo servidor do frontend)
-    // Usa a mesma origem (hostname + porta) automaticamente
-    WHATSAPP_BACKEND: window.location.hostname === 'localhost'
-        ? 'http://localhost:3000'
-        : `${window.location.protocol}//${window.location.host}`,
+    // Backend Principal
+    MAIN_BACKEND: 'http://localhost:3000',
 
-    // Backend AGHUse (Mesmo servidor - mesma porta 3000)
-    AGHUSE_BACKEND: window.location.hostname === 'localhost'
-        ? 'http://localhost:3000'
-        : `${window.location.protocol}//${window.location.host}`,
+    // Backend WhatsApp
+    WHATSAPP_BACKEND: 'http://localhost:3000',
 
-    // Backend Database (Mesmo servidor - mesma porta 3000)
-    DATABASE_BACKEND: window.location.hostname === 'localhost'
-        ? 'http://localhost:3000'
-        : `${window.location.protocol}//${window.location.host}`,
+    // Backend AGHUse
+    AGHUSE_BACKEND: 'http://localhost:3000',
+
+    // Backend Database
+    DATABASE_BACKEND: 'http://localhost:3000',
 
     // Desenvolvimento/Produção
     IS_DEVELOPMENT: window.location.hostname === 'localhost'

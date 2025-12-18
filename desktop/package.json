@@ -1,0 +1,21 @@
+{
+  "name": "meu-hmasp-desktop",
+  "version": "1.0.0",
+  "description": "Meu HMASP - Interface do Operador",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "keywords": [
+    "hmasp",
+    "operador",
+    "desktop"
+  ],
+  "author": "HMASP",
+  "license": "MIT",
+  "devDependencies": {
+    "vite": "^5.4.21"
+  }
+}

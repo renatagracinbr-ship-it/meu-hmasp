@@ -583,7 +583,7 @@ body {
     overflow-x: hidden;
     padding: 1rem;
     background-color: #e5ddd5;
-    background-image: url('/Arquivos/Fundo Zap HMASP.jpg');
+    background-image: url('../../public/Arquivos/Fundo Zap HMASP.jpg');
     background-size: auto 100%;
     background-position: center center;
     background-repeat: repeat-x;

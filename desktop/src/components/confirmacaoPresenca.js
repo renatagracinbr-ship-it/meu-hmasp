@@ -1102,8 +1102,8 @@ function renderConfirmationCard(confirmation) {
             </div>
 
             <div class="appointment-details">
-                <span>📅 ${formatWhatsAppToHTML(confirmation.dataHoraFormatada)}</span>
-                <span class="especialidade-text" title="${confirmation.especialidade}">🏥 ${formatWhatsAppToHTML(confirmation.especialidade)}</span>
+                <span>📅 ${formatMarkdownToHTML(confirmation.dataHoraFormatada)}</span>
+                <span class="especialidade-text" title="${confirmation.especialidade}">🏥 ${formatMarkdownToHTML(confirmation.especialidade)}</span>
                 <span>${telefoneWarning}📞 ${telefoneFormatado}</span>
                 ${dataMarcacaoFormatada ? `<span>🕐 Marcada: ${dataMarcacaoFormatada}</span>` : ''}
             </div>
@@ -1367,11 +1367,11 @@ window.showConfirmationDetails = function(confirmationId) {
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Especialidade:</span>
-                        <span class="detail-value">${formatWhatsAppToHTML(confirmation.especialidade)}</span>
+                        <span class="detail-value">${formatMarkdownToHTML(confirmation.especialidade)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Data/Hora:</span>
-                        <span class="detail-value">${formatWhatsAppToHTML(confirmation.dataHoraFormatada)}</span>
+                        <span class="detail-value">${formatMarkdownToHTML(confirmation.dataHoraFormatada)}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Profissional:</span>
