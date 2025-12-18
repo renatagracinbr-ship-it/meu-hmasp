@@ -1,25 +1,11 @@
-const { resolve } = require('path');
+/**
+ * ATENÇÃO: Este arquivo não é mais utilizado
+ *
+ * A estrutura foi reorganizada:
+ * - Desktop: use mobile/vite.config.js (cd mobile && npm run dev)
+ * - Mobile: use desktop/vite.config.js (cd desktop && npm run dev)
+ *
+ * Backend: npm start (ou node server.js)
+ */
 
-module.exports = {
-  root: '.',
-  publicDir: 'Arquivos',
-  build: {
-    outDir: 'dist',
-    emptyOutDir: true,
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html')
-      }
-    }
-  },
-  server: {
-    port: 5173,
-    open: false, // Navegador abre via INICIAR.bat
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true
-      }
-    }
-  }
-};
+console.warn('⚠️  Este vite.config.js não deve ser usado. Use mobile/ ou desktop/');

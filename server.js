@@ -203,17 +203,19 @@ app.use((req, res, next) => {
     next();
 });
 
-// Servir arquivos estáticos da raiz (admin.html, etc)
-app.use(express.static(__dirname));
+// ============================================================================
+// ARQUITETURA CORRIGIDA - Servir apenas Desktop (Intranet HMASP)
+// ============================================================================
+// MOBILE: Hospedado no Firebase Hosting (não servido daqui)
+// DESKTOP: Interface do Operador (Intranet HMASP)
+// BACKEND: API e integração com AGHUse
+// ============================================================================
 
-// Servir arquivos estáticos da pasta public (whatsapp-admin.html, etc)
-app.use(express.static(path.join(__dirname, 'public')));
+// Servir interface desktop do operador (Intranet)
+app.use('/desktop', express.static(path.join(__dirname, 'desktop')));
 
-// Servir app mobile (pacientes) - Firebase Hosting
-app.use('/mobile', express.static(path.join(__dirname, 'mobile')));
-
-// Servir frontend estático da pasta dist (interface do operador - intranet)
-app.use(express.static(path.join(__dirname, 'dist')));
+// Servir código compartilhado (se houver)
+app.use('/shared', express.static(path.join(__dirname, 'shared')));
 
 // Estado do servidor HTTP (para graceful shutdown)
 let httpServer = null;
@@ -4016,46 +4018,35 @@ app.post('/api/admin/update', async (req, res) => {
 // ROTAS ESPECÍFICAS - Mobile e Desktop
 // ============================================================================
 
-// Rota para o App Mobile (Pacientes) - Firebase Hosting
-app.get('/mobile*', (req, res, next) => {
-    // Se for um arquivo estático (js, css, etc), deixa o express.static servir
-    if (req.path.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|json|woff|woff2|ttf|eot)$/)) {
-        return next();
-    }
-
-    // Serve o index.html do mobile
-    const mobilePath = path.join(__dirname, 'mobile', 'index.html');
-    res.sendFile(mobilePath, (err) => {
-        if (err) {
-            console.error('[Mobile] Erro ao servir mobile/index.html:', err);
-            res.status(404).send('App mobile não encontrado.');
-        }
-    });
+// MOBILE foi removido - agora está no Firebase Hosting
+// Qualquer requisição para /mobile retorna 404
+app.get('/mobile*', (req, res) => {
+    res.status(404).send('O app mobile agora está hospedado no Firebase Hosting. Acesse via URL do Firebase.');
 });
 
 // ============================================================================
 // FALLBACK PARA SPA - Interface do Operador (Desktop/Intranet)
 // ============================================================================
 
+// Rota raiz serve a interface desktop
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'desktop', 'index.html'));
+});
+
+// Catch-all para SPA do Desktop
 app.get('*', (req, res, next) => {
-    // Ignora rotas de API e dashboard
+    // Ignora rotas de API
     if (req.path.startsWith('/api/')) {
         return next();
     }
 
-    // Se for arquivo HTML da pasta public (whatsapp-admin.html, etc), deixa o express.static servir
-    if (req.path.endsWith('.html')) {
+    // Ignora requisições de arquivos estáticos (tem extensão)
+    if (req.path.includes('.')) {
         return next();
     }
 
-    // Serve o index.html do frontend (SPA - Interface do Operador)
-    const indexPath = path.join(__dirname, 'dist', 'index.html');
-    res.sendFile(indexPath, (err) => {
-        if (err) {
-            console.error('[Frontend] Erro ao servir index.html:', err);
-            res.status(404).send('Frontend não encontrado. Execute: npm run build');
-        }
-    });
+    // Serve a interface desktop
+    res.sendFile(path.join(__dirname, 'desktop', 'index.html'));
 });
 
 // ============================================================================

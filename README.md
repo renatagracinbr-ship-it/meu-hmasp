@@ -50,26 +50,32 @@ Meu HMASP/
 |   +-- public/
 |   |   +-- manifest.json      # PWA manifest
 |   +-- firebase.json          # Config Firebase Hosting
+|   +-- vite.config.js         # Build mobile
 |   +-- package.json           # Dependencias mobile
 |
-+-- desktop/                   # Interface do Operador (Desktop)
-|   +-- (a ser configurado - usa index.html atual)
++-- desktop/                   # Interface do Operador (Intranet)
+|   +-- index.html             # Interface desktop do operador
+|   +-- src/                   # Codigo fonte desktop
+|   |   +-- main.js            # Logica desktop
+|   |   +-- components/        # Componentes UI
+|   |   +-- services/          # Servicos frontend
+|   |   +-- styles/            # Estilos CSS
+|   +-- public/                # Assets (logos, imagens)
+|   +-- vite.config.js         # Build desktop
 |
-+-- server/                    # Backend Node.js
++-- server/                    # Backend Node.js (VM HMASP)
 |   +-- aghuse-server.js       # Integracao com banco AGHUse
 |   +-- database/              # Schemas e servicos de banco
 |   +-- middleware/            # Middlewares Express
 |   +-- services/              # Servicos de negocio
 |
-+-- src/                       # Codigo fonte compartilhado
-|   +-- services/              # Servicos do frontend
-|   +-- components/            # Componentes UI
-|   +-- styles/                # Estilos CSS
-|
-+-- index.html                 # Interface do operador (atual)
++-- src/                       # [LEGADO] Sera movido para desktop/src
++-- shared/                    # Codigo compartilhado (a implementar)
 +-- server.js                  # Servidor principal
 +-- package.json               # Dependencias do projeto
 ```
+
+**⚠️ IMPORTANTE**: A estrutura foi reorganizada em 17/12/2024. Veja [ESTRUTURA-PROJETO.md](ESTRUTURA-PROJETO.md) para detalhes.
 
 ## Funcionalidades
 
@@ -131,15 +137,25 @@ PORT=3000
 
 ### 4. Executar em desenvolvimento
 
-**Backend + Desktop:**
+**Backend (obrigatorio):**
 ```bash
-npm run dev
+npm start
+# ou
+node server.js
 ```
 
-**App Mobile:**
+**Desktop (desenvolvimento):**
+```bash
+cd desktop
+npm run dev
+# Abre em http://localhost:5174
+```
+
+**App Mobile (desenvolvimento):**
 ```bash
 cd mobile
 npm run dev
+# Abre em http://localhost:5173
 ```
 
 ## Deploy
@@ -151,8 +167,19 @@ npm run build
 firebase deploy --only hosting
 ```
 
-### VM HMASP (Backend)
+### VM HMASP (Backend + Desktop)
+```bash
+# Build desktop
+cd desktop
+npm run build
+cd ..
+
+# Inicia servidor (serve desktop + API)
+npm start
+```
+
 O backend sera implantado na VM do HMASP com acesso ao banco AGHUse.
+A interface desktop sera servida pelo mesmo servidor em http://[IP-VM]:3000/
 
 ## Paleta de Cores
 
