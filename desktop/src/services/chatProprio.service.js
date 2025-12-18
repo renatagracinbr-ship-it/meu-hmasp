@@ -3,12 +3,12 @@
  *
  * ARQUITETURA:
  * - Mensagens armazenadas em SQLite local (chat.db)
- * - Substitui dependencia do WhatsApp
+ * - Sistema de Chat Próprio (Push Notifications)
  * - Comunicacao entre operadores e pacientes via API REST
  */
 
 import CONFIG from '../config/backend.config.js';
-const BACKEND_URL = CONFIG.WHATSAPP_BACKEND; // Usa mesmo backend
+const BACKEND_URL = CONFIG.MAIN_BACKEND;
 
 // ============================================================================
 // CONVERSAS

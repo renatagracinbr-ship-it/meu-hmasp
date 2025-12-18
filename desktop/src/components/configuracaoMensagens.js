@@ -7,7 +7,7 @@
 
 import CONFIG from '../config/backend.config.js';
 
-const API_BASE = CONFIG.MAIN_BACKEND || CONFIG.WHATSAPP_BACKEND;
+const API_BASE = CONFIG.MAIN_BACKEND;
 
 // Estado do componente
 const state = {

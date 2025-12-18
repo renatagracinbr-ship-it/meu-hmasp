@@ -5,7 +5,7 @@
  * - Monitorar consultas que acontecerão em 72 horas
  * - Enviar mensagens de lembrete de confirmação de presença
  * - Reutilizar todo o fluxo de confirmação existente
- * - Integrar AGHUse + WhatsApp + Fila anti-banimento
+ * - Integrar AGHUse + Chat Próprio (Push Notifications)
  */
 
 import * as AghuseService from './aghuse.service.js';

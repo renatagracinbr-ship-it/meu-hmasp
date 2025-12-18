@@ -2,22 +2,19 @@
  * Configuração de Backends
  *
  * ARQUITETURA HMASP (São Paulo):
- * - VM2 (DMZ/Internet): WhatsApp apenas - Isolada da intranet
- * - VM3 (Intranet): AGHUse apenas - Acesso ao banco PostgreSQL
- * - Frontend: Orquestra comunicação entre VM2 e VM3
+ * - Backend Principal: API REST + Chat Próprio + Push Notifications
+ * - AGHUse: Acesso ao banco PostgreSQL (consultas médicas)
+ * - Database: SQLite local para persistência
  */
 
 const CONFIG = {
-    // Backend Principal
+    // Backend Principal (Chat Próprio + Push Notifications)
     MAIN_BACKEND: 'http://localhost:3000',
 
-    // Backend WhatsApp
-    WHATSAPP_BACKEND: 'http://localhost:3000',
-
-    // Backend AGHUse
+    // Backend AGHUse (Consultas médicas)
     AGHUSE_BACKEND: 'http://localhost:3000',
 
-    // Backend Database
+    // Backend Database (SQLite)
     DATABASE_BACKEND: 'http://localhost:3000',
 
     // Desenvolvimento/Produção
