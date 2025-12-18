@@ -126,7 +126,7 @@ export async function init() {
 
     // Respostas dos pacientes são processadas via Chat Próprio
     // O endpoint /api/chat-proprio/acao-resposta atualiza o status diretamente no SQLite
-    console.log('[Desmarcação] 📱 Respostas processadas via Chat Próprio (sem WhatsApp)');
+    console.log('[Desmarcação] 📱 Respostas processadas via Chat Próprio');
 
     // Inicia auto-arquivamento periódico (a cada 1 hora)
     startAutoArquivamento();

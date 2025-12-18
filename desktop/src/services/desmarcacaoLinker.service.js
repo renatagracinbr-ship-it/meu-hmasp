@@ -31,13 +31,13 @@ import * as ChatAudit from './chatAudit.service.js';
  *
  * Lógica:
  * 1. Busca todas confirmações com status 'declined' ou 'not_scheduled'
- * 2. IMPORTANTE: Só considera confirmações que tiveram RESPOSTA VIA WHATSAPP
+ * 2. IMPORTANTE: Só considera confirmações que tiveram RESPOSTA VIA CHAT
  *    (dataResposta ou badgeStatus definidos)
  * 3. Procura match por consultaNumero (ID exato da consulta)
  * 4. Se match → retorna confirmação vinculada
  *
- * NOTA: Se paciente marcou/desmarcou pela internet sem interagir com WhatsApp,
- * NÃO deve fazer vinculação - nosso sistema só monitora interações via WhatsApp.
+ * NOTA: Se paciente marcou/desmarcou pela internet sem interagir com Chat,
+ * NÃO deve fazer vinculação - nosso sistema só monitora interações via Chat.
  *
  * @param {Object} desmarcacao - Objeto de desmarcação do AGHUse
  * @param {string} desmarcacao.consultaNumero - ID da consulta desmarcada
@@ -61,26 +61,26 @@ export async function tryLinkDesmarcacao(desmarcacao) {
         const todasConfirmacoes = ConfirmacaoService.getAllConfirmations();
 
         // Filtra confirmações com badge "Desmarcar" (status declined ou not_scheduled)
-        // IMPORTANTE: Só considera confirmações que tiveram RESPOSTA VIA WHATSAPP
+        // IMPORTANTE: Só considera confirmações que tiveram RESPOSTA VIA CHAT
         // Isso evita vincular desmarcações de pacientes que marcaram/desmarcaram pela internet
         const confirmacoesComBadgeDesmarcar = todasConfirmacoes.filter(c => {
             const temStatusDesmarcacao = c.statusGeral === 'declined' || c.statusGeral === 'not_scheduled';
-            // ✅ NOVA CONDIÇÃO: Só vincula se houve resposta via WhatsApp
-            const houveRespostaWhatsApp = c.dataResposta || c.badgeStatus;
+            // ✅ NOVA CONDIÇÃO: Só vincula se houve resposta via Chat
+            const houveRespostaChat = c.dataResposta || c.badgeStatus;
 
-            if (temStatusDesmarcacao && !houveRespostaWhatsApp) {
-                console.log(`[DesmarcacaoLinker] ⏭️ Ignorando confirmação ${c.consultaNumero} - sem resposta WhatsApp`);
+            if (temStatusDesmarcacao && !houveRespostaChat) {
+                console.log(`[DesmarcacaoLinker] ⏭️ Ignorando confirmação ${c.consultaNumero} - sem resposta Chat`);
             }
 
-            return temStatusDesmarcacao && houveRespostaWhatsApp;
+            return temStatusDesmarcacao && houveRespostaChat;
         });
 
         if (confirmacoesComBadgeDesmarcar.length === 0) {
-            console.log(`[DesmarcacaoLinker] Nenhuma confirmação com badge "Desmarcar" (e resposta WhatsApp) encontrada`);
+            console.log(`[DesmarcacaoLinker] Nenhuma confirmação com badge "Desmarcar" (e resposta Chat) encontrada`);
             return result;
         }
 
-        console.log(`[DesmarcacaoLinker] ${confirmacoesComBadgeDesmarcar.length} confirmações com badge "Desmarcar" (e resposta WhatsApp) encontradas`);
+        console.log(`[DesmarcacaoLinker] ${confirmacoesComBadgeDesmarcar.length} confirmações com badge "Desmarcar" (e resposta Chat) encontradas`);
 
         // Procura match por consultaNumero (ID exato)
         const matchedConfirmacao = confirmacoesComBadgeDesmarcar.find(c =>
@@ -123,7 +123,7 @@ export async function tryLinkDesmarcacao(desmarcacao) {
             description: 'Operador desmarcou consulta no AGHUse (vinculada à aba Confirmação)',
             badgeTransition: 'DESMARCAR → DESMARCADA',
             sendMessageToPaciente: false,
-            reason: 'Paciente solicitou desmarcação via WhatsApp (resposta 2 - Não poderei comparecer)'
+            reason: 'Paciente solicitou desmarcação via Chat (resposta 2 - Não poderei comparecer)'
         });
 
         console.log(`[DesmarcacaoLinker] ✅ Vinculação concluída - NÃO enviar mensagem de desmarcação`);
@@ -232,7 +232,7 @@ async function updateConfirmacaoBadge(confirmacaoId, newBadgeStatus) {
 /**
  * Obtém estatísticas de vinculações
  *
- * NOTA: Só conta confirmações que tiveram resposta via WhatsApp
+ * NOTA: Só conta confirmações que tiveram resposta via Chat
  *
  * @returns {Object} - Estatísticas
  */
@@ -247,12 +247,12 @@ export function getStats() {
     };
 
     todasConfirmacoes.forEach(c => {
-        // ✅ Só conta se houve resposta via WhatsApp
-        const houveRespostaWhatsApp = c.dataResposta || c.badgeStatus;
+        // ✅ Só conta se houve resposta via Chat
+        const houveRespostaChat = c.dataResposta || c.badgeStatus;
 
         if (c.statusGeral === 'declined' || c.statusGeral === 'not_scheduled') {
-            // Só conta badges se houve resposta via WhatsApp
-            if (houveRespostaWhatsApp) {
+            // Só conta badges se houve resposta via Chat
+            if (houveRespostaChat) {
                 if (c.badgeStatus === 'desmarcada') {
                     stats.comBadgeDesmarcada++;
                 } else {

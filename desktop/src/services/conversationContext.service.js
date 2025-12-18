@@ -350,7 +350,7 @@ export function registerReagendamentoRequest(telefone, data) {
         status: 'pending', // 'pending', 'fulfilled', 'cancelled'
 
         // ✅ NOVO: Metadados para debugging
-        requestSource: data.requestSource || 'whatsapp_response', // ou 'manual'
+        requestSource: data.requestSource || 'chat_response', // ou 'manual'
         originalDesmarcacaoId: data.desmarcacaoId || null
     };
 

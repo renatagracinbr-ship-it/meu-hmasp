@@ -218,7 +218,7 @@ function findDesmarcacaoByConsultaId(consultaId) {
 }
 
 /**
- * Tenta vincular nova consulta a desmarcação recente (SEM pedido via WhatsApp)
+ * Tenta vincular nova consulta a desmarcação recente (SEM pedido via Chat)
  *
  * Caso de uso: Operador desmarcou consulta por indisponibilidade do profissional
  * e agora está marcando nova consulta para o mesmo paciente.
@@ -267,10 +267,10 @@ export async function tryLinkToRecentDesmarcacao(novaConsulta) {
         // 1. Mesmo prontuário (mesma pessoa)
         // 2. Mesma especialidade
         // 3. Dentro de 72 horas
-        // 4. ⚠️ OBRIGATÓRIO: Paciente SOLICITOU reagendamento via WhatsApp (status = 'reagendamento')
+        // 4. ⚠️ OBRIGATÓRIO: Paciente SOLICITOU reagendamento via Chat (status = 'reagendamento')
         //
         // REGRA DE NEGÓCIO: Só é considerado reagendamento se o paciente respondeu "1"
-        // (Solicito reagendamento) via WhatsApp. Consultas marcadas/desmarcadas pelo
+        // (Solicito reagendamento) via Chat. Consultas marcadas/desmarcadas pelo
         // sistema, internet ou balcão NÃO são consideradas reagendamentos!
         const matchedDesmarcacao = desmarcacoesRecentes.find(d => {
             // Data de desmarcação
@@ -279,12 +279,12 @@ export async function tryLinkToRecentDesmarcacao(novaConsulta) {
             // Data de marcação da nova consulta (quando foi criada no AGHUse)
             const dataMarcacaoNova = new Date(novaConsulta.dataMarcacao || novaConsulta.criadoEm || Date.now());
 
-            // ⚠️ CRÍTICO: Verifica se paciente SOLICITOU reagendamento via WhatsApp
+            // ⚠️ CRÍTICO: Verifica se paciente SOLICITOU reagendamento via Chat
             const pacienteSolicitouReagendamento = d.status === 'reagendamento';
 
             return d.prontuario === novaConsulta.prontuario &&  // ✅ MESMO PACIENTE
                    d.especialidade === novaConsulta.especialidade &&  // ✅ MESMA ESPECIALIDADE
-                   pacienteSolicitouReagendamento &&  // ✅ PACIENTE SOLICITOU VIA WHATSAPP
+                   pacienteSolicitouReagendamento &&  // ✅ PACIENTE SOLICITOU VIA CHAT
                    !d.reagendada &&  // ✅ Ainda não foi reagendada
                    dataMarcacaoNova > dataDesmarcacao;  // ✅ Nova consulta marcada DEPOIS da desmarcação
         });
@@ -299,8 +299,8 @@ export async function tryLinkToRecentDesmarcacao(novaConsulta) {
             return result;
         }
 
-        // ✅ MATCH ENCONTRADO - Paciente solicitou reagendamento via WhatsApp (respondeu "1")!
-        console.log(`[ReagendamentoLinker] ✅ Match encontrado! Paciente SOLICITOU reagendamento via WhatsApp`);
+        // ✅ MATCH ENCONTRADO - Paciente solicitou reagendamento via Chat (respondeu "1")!
+        console.log(`[ReagendamentoLinker] ✅ Match encontrado! Paciente SOLICITOU reagendamento via Chat`);
         console.log(`[ReagendamentoLinker]    Desmarcação ID: ${matchedDesmarcacao.id}`);
         console.log(`[ReagendamentoLinker]    Consulta original: ${matchedDesmarcacao.consultaNumero}`);
         console.log(`[ReagendamentoLinker]    Nova consulta: ${novaConsulta.consultaNumero}`);

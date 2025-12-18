@@ -391,7 +391,7 @@ function setupSystemActions() {
 
 // ============================================================================
 // INTERFACE DE CHAT (AGORA VIA CHAT PRÓPRIO)
-// A interface de chat agora usa o Chat Próprio em vez do WhatsApp
+// A interface de chat agora usa o Chat Próprio
 // O componente ChatProprio (chatProprio.js) gerencia toda a lógica de
 // conversa com pacientes via Chat Próprio e Push Notifications
 // ============================================================================
@@ -406,7 +406,7 @@ function setupSystemActions() {
 // - refreshMessages, loadMessages, displayMessages
 // - createMessageElement, markChatAsRead, sendMessage
 // - updateConversationInList, scrollToBottom, filterConversations
-// - setupEventListeners (relacionados ao chat WhatsApp)
+// - setupEventListeners (relacionados ao chat legado)
 //
 // Toda a lógica de chat agora está em src/components/chatProprio.js
 
@@ -432,7 +432,7 @@ function getInitials(name) {
 
 
 // ============================================================================
-// FUNÇÕES LEGADAS REMOVIDAS (WHATSAPP)
+// FUNÇÕES LEGADAS REMOVIDAS (CHAT ANTIGO)
 // Todas as funções de chat foram movidas para chatProprio.js:
 // - displayMessages, setupMessagesScroll, handleMessagesScroll
 // - createMessageElement, escapeHtml, markChatAsRead
@@ -739,7 +739,7 @@ function applyPermissionControls() {
 // ============================================================================
 // SUPRESSÃO DE ERROS 404 DE MÍDIA ANTIGA/EXPIRADA
 // ============================================================================
-// Stickers e mídias antigas frequentemente expiram nos servidores do WhatsApp
+// Stickers e mídias antigas frequentemente expiram nos servidores
 // Isso é comportamento esperado e documentado
 // Fonte: https://wwebjs.dev/guide/creating-your-bot/handling-attachments
 window.addEventListener('error', (event) => {

@@ -2,7 +2,7 @@
  * Chat Proprio - Componente do Operador
  *
  * Interface de chat interno para comunicacao com pacientes
- * Substitui a dependencia do WhatsApp
+ * Substitui a dependencia de chats externos
  */
 
 import * as ChatService from '../services/chatProprio.service.js';

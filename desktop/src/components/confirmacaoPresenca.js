@@ -181,7 +181,7 @@ export async function init() {
 
     // Respostas dos pacientes são processadas automaticamente via Chat Próprio
     // O endpoint /api/chat-proprio/acao-resposta atualiza o status diretamente no SQLite
-    console.log('[Confirmação] 📱 Respostas processadas via Chat Próprio (sem WhatsApp)');
+    console.log('[Confirmação] 📱 Respostas processadas via Chat Próprio');
 
     // Inicia auto-arquivamento periódico (a cada 1 hora)
     startAutoArquivamento();
@@ -789,10 +789,10 @@ async function handleNewConfirmations(newConfirmations) {
     // ✅ REAGENDAMENTO LINKER: Tenta vincular cada nova consulta a pedidos de reagendamento
     console.log('[Confirmação] Verificando se alguma consulta é um reagendamento...');
     for (const consulta of reallyNew) {
-        // Método 1: Tenta vincular com pedido de reagendamento via WhatsApp (paciente respondeu "1")
+        // Método 1: Tenta vincular com pedido de reagendamento via Chat (paciente respondeu "1")
         const linkResult = await ReagendamentoLinker.tryLinkNovaConsulta(consulta);
 
-        // Método 2: Se não encontrou pedido via WhatsApp, tenta match automático
+        // Método 2: Se não encontrou pedido via Chat, tenta match automático
         // (mesmo prontuário + mesma especialidade + desmarcação nas últimas 72h)
         if (!linkResult.linked) {
             await ReagendamentoLinker.tryLinkToRecentDesmarcacao(consulta);

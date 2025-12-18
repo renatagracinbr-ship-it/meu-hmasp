@@ -40,27 +40,27 @@ export const BADGES = {
 const AUTO_RESPONSES = {
     confirmed: {
         texto: (nome) => `✅ *Presença confirmada!* Obrigado. Aguardamos você na data e horário marcados.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     },
     declined: {
         texto: (nome) => `❌ *Entendido.* Sua consulta foi desmarcada. Em caso de dúvidas, entre em contato com a Central de Marcação de Consultas.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     },
     not_scheduled: {
         texto: (nome) => `⚠️ *Obrigado pelo retorno.* Verificaremos o agendamento. Se necessário, entraremos em contato.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     },
     reagendamento: {
         texto: (nome) => `✅ *Agradecemos o retorno!*\n\nSua consulta será reagendada e você será informado assim que tivermos uma nova data disponível. Contamos com a sua compreensão.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     },
     paciente_solicitou: {
         texto: (nome) => `✅ *Agradecemos o retorno!*\n\nCompreendemos sua solicitação. Ficamos à disposição caso precise reagendar. Desejamos saúde e bem-estar.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     },
     sem_reagendamento: {
         texto: (nome) => `✅ *Agradecemos pela informação!*\n\nCaso precise de um novo agendamento no futuro, estamos à disposição através dos nossos canais de atendimento. Desejamos saúde e bem-estar.\n\n_HMASP - Central de Marcação de Consultas_`,
-        needsWhatsApp: true
+        needsResponse: true
     }
 };
 
@@ -283,7 +283,7 @@ export function processOperatorDesmarcacao(consultaId, operadorId) {
         operadorId,
         // NÃO envia mensagem ao paciente (paciente já sabe que será desmarcado)
         sendMessageToPaciente: false,
-        reason: 'Paciente solicitou desmarcação via WhatsApp (resposta 2)'
+        reason: 'Paciente solicitou desmarcação via Chat (resposta 2)'
     };
 }
 

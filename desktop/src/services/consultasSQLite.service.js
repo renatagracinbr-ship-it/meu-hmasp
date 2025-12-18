@@ -215,7 +215,7 @@ export async function updateConsultaStatus(consultaNumero, novoStatus) {
 /**
  * Marca mensagem como enviada
  * @param {string} consultaNumero - Número da consulta
- * @param {string} whatsappMessageId - ID da mensagem WhatsApp (opcional)
+ * @param {string} whatsappMessageId - ID da mensagem (opcional, legado)
  * @returns {Promise<boolean>} - Sucesso ou falha
  */
 export async function markMensagemEnviada(consultaNumero, whatsappMessageId = null) {
@@ -722,7 +722,7 @@ export function convertSQLiteToFrontend(consultaSQLite) {
             telefoneFormatado: consultaSQLite.telefone_formatado || consultaSQLite.telefone,
             telefoneType: 'mobile',
             telefoneOrigem: consultaSQLite.telefone,
-            chatId: consultaSQLite.telefone ? consultaSQLite.telefone.replace('+', '') + '@c.us' : null, // Formato WhatsApp
+            chatId: consultaSQLite.telefone ? consultaSQLite.telefone.replace('+', '') + '@c.us' : null, // Formato legado
             // Mensagem será NULL - sendConfirmationMessage() vai gerar a mensagem na hora do envio
             mensagem: null,
             templateId: templateId, // Salva o templateId para gerar depois
@@ -777,12 +777,12 @@ export function convertSQLiteToFrontend(consultaSQLite) {
         criadoEm: consultaSQLite.criado_em,
         atualizadoEm: consultaSQLite.atualizado_em,
         criadoPor: consultaSQLite.criado_por,
-        // Campo de resposta (indica que houve resposta via WhatsApp - necessário para badge vermelho)
+        // Campo de resposta (indica que houve resposta via Chat - necessário para badge vermelho)
         dataResposta: consultaSQLite.data_resposta,
         // Campos de badge (para exibir badge vermelho/verde)
         badgeStatus: consultaSQLite.badge_status,
         badgeInfo: consultaSQLite.badge_info ? JSON.parse(consultaSQLite.badge_info) : null,
-        // Contexto da conversa WhatsApp
+        // Contexto da conversa Chat
         contexto: consultaSQLite.contexto || 'confirmacao',
         // Campos adicionais do paciente
         pacCodigo: consultaSQLite.pac_codigo,

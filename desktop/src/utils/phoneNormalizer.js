@@ -188,13 +188,13 @@ export class PhoneNormalizer {
     }
 
     /**
-     * Valida se um número é WhatsApp válido
+     * Valida se um número é válido para chat (celular)
      * @param {string} phone - Número de telefone
      * @returns {boolean}
      */
     static isWhatsAppValid(phone) {
         const result = PhoneNormalizer.normalize(phone);
-        // WhatsApp só funciona em celulares
+        // Chat só funciona em celulares
         return result.valid && result.type === 'mobile';
     }
 }
